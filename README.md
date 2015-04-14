@@ -1,4 +1,6 @@
-# PhantomJS Runners for Mocha
+**Very early prototype in development**
+
+# Run Mocha tests in PhantomJS
 
 [Mocha](http://mochajs.org/) is a feature-rich JavaScript test framework running on node and the browser. Along with the [Chai](http://chaijs.com) assertion library they make an impressive combo. [PhantomJS](http://phantomjs.org) is a headless WebKit with a JavaScript/CoffeeScript API. It has fast and native support for various web standards like DOM handling, CSS selectors, JSON, Canvas, and SVG.
 
@@ -6,7 +8,7 @@ The mocha-phantomjs project provides a `mocha-phantomjs.coffee` script file and 
 
   * **Since version 3.0 of mocha-phantomjs, you must use PhantomJS 1.9.1 or higher.**
 
-[![Build Status](https://secure.travis-ci.org/metaskills/mocha-phantomjs.png)](http://travis-ci.org/metaskills/mocha-phantomjs)
+[![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
 
 
 # Key Features
@@ -26,7 +28,7 @@ You can use your existing Mocha HTML file reporters side by side with mocha-phan
 
 # Installation
 
-We distribute [mocha-phantomjs as an npm](https://npmjs.org/package/mocha-phantomjs) that is easy to install. Once done, you will have a `mocha-phantomjs` binary. See the next usage section for docs or use the `-h` flag.
+We distribute [mocha-phantomjs as an npm](https://npmjs.org/package/mocha-phantomjs-core) that is easy to install. Once done, you will have a `mocha-phantomjs` binary. See the next usage section for docs or use the `-h` flag.
 
 Since 3.4, we now declare phantomjs as a peer dependency, and it will be installed adjacent to `mocha-phantomjs` automatically. You may use `-p` to provide an explicit path to phantomjs, or call phantomjs directly yourself via `phantomjs lib/mocha-phantomjs.coffee <page> <reporter> <config-as-JSON>`. The later approach is recommended for build system plugins to avoid another process fork. 
 
@@ -180,7 +182,7 @@ Simple! Just clone the repo, then run `npm install` and the various node develop
 
 We also use Travis CI to run our tests too. The current build status:
 
-[![Build Status](https://secure.travis-ci.org/metaskills/mocha-phantomjs.png)](http://travis-ci.org/metaskills/mocha-phantomjs)
+[![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
 
 
 # Alternatives
@@ -191,5 +193,5 @@ We also use Travis CI to run our tests too. The current build status:
 
 # License
 
-Released under the MIT license. Copyright (c) 2012 Ken Collins.
+Released under the MIT license. Copyright (c) 2015 Ken Collins and Nathan Black.
 
