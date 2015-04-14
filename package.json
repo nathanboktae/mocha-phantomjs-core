@@ -9,12 +9,12 @@
     "command line",
     "browser"
   ],
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Nathan Black <nathan@nathanblack.org> (https://github.com/nathanboktae)",
   "licenses": [
     {
       "type": "MIT",
-      "url": "http://github.com/metaskills/mocha-phantomjs-core/blob/master/MIT-LICENSE"
+      "url": "http://github.com/nathanboktae/mocha-phantomjs-core/blob/master/MIT-LICENSE"
     }
   ],
   "contributors": [
@@ -22,14 +22,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/metaskills/mocha-phantomjs-core.git"
+    "url": "http://github.com/nathanboktae/mocha-phantomjs-core.git"
   },
   "bugs": {
-    "url": "http://github.com/metaskills/mocha-phantomjs-core/issues"
+    "url": "http://github.com/nathanboktae/mocha-phantomjs-core/issues"
   },
-  "main": "./lib/mocha-phantomjs.coffee",
+  "main": "./mocha-phantomjs-core.js",
   "scripts": {
-    "test": "mocha --harmony --compilers coffee:coffee-script/register test/mocha-phantomjs.coffee -t 20000"
+    "test": "mocha --harmony --compilers coffee:coffee-script/register test/mocha-phantomjs.coffee -t 5000"
   },
   "peerDependencies": {
     "phantomjs": ">=1.9.1"
