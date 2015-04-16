@@ -31,12 +31,6 @@
   "scripts": {
     "test": "mocha --harmony --compilers coffee:coffee-script/register test/mocha-phantomjs.coffee -t 5000"
   },
-  "peerDependencies": {
-    "phantomjs": ">=1.9.1"
-  },
-  "dependencies": {
-    "mocha": "^2.2.4"
-  },
   "devDependencies": {
     "bluebird": "^2.9.24",
     "chai": "^2.2.0",
