@@ -1,6 +1,12 @@
 language: node_js
 node_js:
   - 0.12
+
+env:
+  - PHANTOMJS_VER=phantomjs-1.9.7-linux-x86_64
+
 before_script:
-  - phantomjs --version
+  - get https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS_VER.tar.bz2 -O - | tar -xj
+  - mv $PHANTOMJS_VER/bin/phantomjs .
+
 script: npm test

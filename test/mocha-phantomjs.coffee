@@ -25,7 +25,7 @@ describe 'mocha-phantomjs-core', ->
         opts.reporter or 'spec',
         JSON.stringify(opts)
       ]
-      mochaPhantomJS = spawn 'phantomjs', spawnArgs
+      mochaPhantomJS = spawn "#{process.cwd()}/phantomjs", spawnArgs
       mochaPhantomJS.stdout.on 'data', (data) -> stdout = stdout.concat data.toString()
       mochaPhantomJS.stderr.on 'data', (data) -> stderr = stderr.concat data.toString()
       mochaPhantomJS.on 'exit', (code) ->
