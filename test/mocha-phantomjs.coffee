@@ -36,7 +36,7 @@ describe 'mocha-phantomjs-core', ->
   xit 'returns a failure code and shows usage when no args are given', ->
     run done, [], (code, stdout, stderr) ->
       code.should.equal 1
-      stdout.should.match /Usage: mocha-phantomjs/
+      stdout.should.match /Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]/
 
   it 'returns a failure code and notifies of bad url when given one', ->
     @timeout = 4000
@@ -92,102 +92,35 @@ describe 'mocha-phantomjs-core', ->
     { stdout } = yield run { test: 'mocha-runner' }
     stdout.should.match /Run callback fired/m
 
-  passRegExp   = (n) -> ///\u001b\[32m\s\s[✔✓]\u001b\[0m\u001b\[90m\spasses\s#{n}///
-  skipRegExp   = (n) -> ///\u001b\[36m\s\s-\sskips\s#{n}\u001b\[0m///
-  failRegExp   = (n) -> ///\u001b\[31m\s\s#{n}\)\sfails\s#{n}\u001b\[0m///
-  passComplete = (n) -> ///\u001b\[0m\n\n\n\u001b\[92m\s\s[✔✓]\u001b\[0m\u001b\[32m\s#{n}\stests\scomplete///
-  pendComplete = (n) -> ///\u001b\[36m\s+•\u001b\[0m\u001b\[36m\s#{n}\stests\spending///
-  failComplete = (x,y) -> ///\u001b\[31m\s\s#{x}\sfailing\u001b\[0m///
+  it 'can use a different reporter', ->
+    { stdout } = yield run
+      reporter: 'xunit'
+      test: 'mixed'
+    
+    stdout.should.match /<testcase classname="Tests Mixed" name="passes 1" time=".*"\/>/
 
-  describe 'spec', ->
-    describe 'passing', ->
-      before ->
-        { @code, @stdout } = yield run { test: 'passing' }
+  describe 'exit code', ->
+    it 'returns 0 when all tests pass', ->
+      { code } = yield run { test: 'passing' }
+      code.should.equal 0
 
-      it 'returns a passing code', ->
-        @code.should.equal 0
+    it 'returns a failing code equal to the number of mocha failures', ->
+      { code } = yield run { test: 'failing' }
+      code.should.equal 3
 
-      it 'writes all output in color', ->
-        @stdout.should.match /Tests Passing/
-        @stdout.should.match passRegExp(1)
-        @stdout.should.match passRegExp(2)
-        @stdout.should.match passRegExp(3)
-        @stdout.should.match skipRegExp(1)
-        @stdout.should.match skipRegExp(2)
-        @stdout.should.match skipRegExp(3)
+    it 'returns a failing code correctly even with async failing tests', ->
+      { code } = yield run { test: 'failing-async' }
+      code.should.equal 3
 
-    describe 'failing', ->
-      before ->
-        { @code, @stdout } = yield run { test: 'failing' }
+  describe 'screenshot', ->
+    it 'takes a screenshot into given file, suffixed with .png', ->
+      { code } = yield run { test: 'screenshot' }
+      code.should.equal 0
+      fileName = 'screenshot.png'
+      fs.existsSync(fileName).should.be.true
+      fs.unlinkSync(fileName)
 
-      it 'returns a failing code equal to the number of mocha failures', ->
-        @code.should.equal 3
-
-      it 'writes all output in color', ->
-        @stdout.should.match /Tests Failing/
-        @stdout.should.match passRegExp(1)
-        @stdout.should.match passRegExp(2)
-        @stdout.should.match passRegExp(3)
-        @stdout.should.match failRegExp(1)
-        @stdout.should.match failRegExp(2)
-        @stdout.should.match failRegExp(3)
-        @stdout.should.match failComplete(3,6)
-
-    describe 'failing async', ->
-      before ->
-        { @code, @stdout } = yield run { test: 'failing-async' }
-
-      it 'returns a failing code equal to the number of mocha failures', ->
-        @code.should.equal 3
-
-      it 'writes all output in color', ->
-        @stdout.should.match /Tests Failing/
-        @stdout.should.match passRegExp(1)
-        @stdout.should.match passRegExp(2)
-        @stdout.should.match passRegExp(3)
-        @stdout.should.match failRegExp(1)
-        @stdout.should.match failRegExp(2)
-        @stdout.should.match failRegExp(3)
-        @stdout.should.match failComplete(3,6)
-
-    describe 'screenshot', ->
-      it 'takes a screenshot into given file, suffixed with .png', ->
-        { code } = yield run { test: 'screenshot' }
-        code.should.equal 0
-        fileName = 'screenshot.png'
-        fs.existsSync(fileName).should.be.true
-        fs.unlinkSync(fileName)
-
-  describe 'dot', ->
-    it 'uses dot reporter', ->
-      { stdout } = yield run
-        reporter: 'dot'
-        test: 'mixed'
-      
-      stdout.should.match /\u001b\[90m\․\u001b\[0m/ # grey
-      stdout.should.match /\u001b\[36m\․\u001b\[0m/ # cyan
-      stdout.should.match /\u001b\[31m\․\u001b\[0m/ # red
-
-    before ->
-      @args = ['-R', 'dot', fileURL('many')]
-
-    it 'wraps lines correctly and has only one double space for the last dot', ->
-      { stdout } = yield run
-        reporter: 'dot'
-        test: 'many'
-
-      matches = stdout.match /\d\dm\․\u001b\[0m(\r\n\r\n|\n\n)/g
-      matches.length.should.equal 1
-
-  describe 'xunit', ->
-    it 'basically works', ->
-      { stdout } = yield run
-        reporter: 'xunit'
-        test: 'mixed'
-      
-      stdout.should.match /<testcase classname="Tests Mixed" name="passes 1" time=".*"\/>/
-
-  describe 'third party', ->
+  describe 'third party reporters', ->
     it 'loads and wraps node-style reporters to run in the browser', ->
       { stdout } = yield run
         reporter: process.cwd() + '/test/reporters/3rd-party.js'
@@ -289,8 +222,17 @@ describe 'mocha-phantomjs-core', ->
         code.should.equal 6
         stdout.should.not.match /passes/
 
-    describe 'no-colors', ->
-      it 'suppresses color output', ->
+    describe 'colors', ->
+      it 'by default outputs in color', ->
+        { stdout } = yield run
+          reporter: 'dot'
+          test: 'mixed'
+        
+        stdout.should.match /\u001b\[90m\․\u001b\[0m/ # grey
+        stdout.should.match /\u001b\[36m\․\u001b\[0m/ # cyan
+        stdout.should.match /\u001b\[31m\․\u001b\[0m/ # red
+
+      it 'can suppresses color output', ->
         { stdout } = yield run
           test: 'mixed'
           useColors: false
@@ -298,12 +240,12 @@ describe 'mocha-phantomjs-core', ->
         stdout.should.not.match /\u001b\[\d\dm/
 
     describe 'bail', ->
-      it 'should bail on the first error', ->
+      xit 'should bail on the first error', ->
         { stdout } = yield run
           test: 'mixed'
           bail: true
 
-        stdout.should.match failRegExp 1
+        stdout.should.contain '1 failing'
 
     describe 'file', ->
       it 'pipes reporter output to a file', ->
