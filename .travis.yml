@@ -6,7 +6,7 @@ env:
   - PHANTOMJS_VER=phantomjs-1.9.7-linux-x86_64
 
 before_script:
-  - get https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS_VER.tar.bz2 -O - | tar -xj
+  - wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS_VER.tar.bz2 -O - | tar -xj
   - mv $PHANTOMJS_VER/bin/phantomjs .
 
 script: npm test
