@@ -7,8 +7,7 @@ var
   config = JSON.parse(system.args[3] || '{}'),
 
   mochaStartWait = config.timeout || 6000,
-  startTime = Date.now(),
-  page
+  startTime = Date.now()
 
 if (!url) {
   console.log("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
@@ -20,36 +19,80 @@ if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version
   phantom.exit(-1)
 }
 
-if (config.hooks) {
-  config.hooks = require(config.hooks)
-} else {
-  config.hooks = {}
+config.hooks = config.hooks ? require(config.hooks) : {}
+
+// Create and configure the client page
+var
+  output = config.file ? fs.open(config.file, 'w') : system.stdout,
+  page = webpage.create({
+    settings: config.settings
+  }),
+  fail = function(msg, errno) {
+    if (output && config.file) {
+      output.close()
+    }
+    if (msg) {
+      console.log(msg)
+    }
+    return phantom.exit(errno || 1)
+  }
+
+if (config.headers) {
+  page.customHeaders = config.headers
+}
+(config.cookies || []).forEach(function(cookie) {
+  page.addCookie(cookie)
+})
+if (config.viewportSize) {
+  page.viewportSize = config.viewportSize
 }
 
-var output = config.file ? fs.open(config.file, 'w') : system.stdout
+page.onConsoleMessage = function(msg) {
+  return system.stdout.writeLine(msg)
+}
+page.onResourceError = function(resErr) {
+  if (!config.ignoreResourceErrors) {
+    return system.stdout.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
+  }
+}
+page.onError = function(msg, traces) {
+  var file, index, line, _j, _len1, _ref1;
+  if (page.evaluate(function() {
+    return window.onerror != null;
+  })) {
+    return;
+  }
+  for (index = _j = 0, _len1 = traces.length; _j < _len1; index = ++_j) {
+    _ref1 = traces[index], line = _ref1.line, file = _ref1.file;
+    traces[index] = "  " + file + ":" + line;
+  }
+  return fail("" + msg + "\n\n" + (traces.join('\n')));
+}
+page.onInitialized = function() {
+  return page.evaluate(function(env) {
+    return window.mochaPhantomJS = {
+      env: env,
+      failures: 0,
+      ended: false,
+      started: false,
+      run: function() {
+        mochaPhantomJS.runArgs = arguments;
+        mochaPhantomJS.started = true;
+        window.callPhantom({
+          'mochaPhantomJS.run': true
+        });
+        return mochaPhantomJS.runner;
+      }
+    };
+  }, system.env)
+}
+
 
 var Reporter = (function() {
   function Reporter() {}
 
   Reporter.prototype.run = function() {
-    this.initPage();
     return this.loadPage();
-  };
-
-  Reporter.prototype.customizeOptions = function() {
-    return {
-      columns: this.columns
-    };
-  };
-
-  Reporter.prototype.fail = function(msg, errno) {
-    if (output && config.file) {
-      output.close();
-    }
-    if (msg) {
-      console.log(msg);
-    }
-    return phantom.exit(errno || 1);
   };
 
   Reporter.prototype.finish = function() {
@@ -59,61 +102,6 @@ var Reporter = (function() {
     return phantom.exit(page.evaluate(function() {
       return mochaPhantomJS.failures;
     }));
-  };
-
-  Reporter.prototype.initPage = function() {
-    var _this = this;
-    page = webpage.create({
-      settings: config.settings
-    });
-    if (config.headers) {
-      page.customHeaders = config.headers;
-    }
-    (config.cookies || []).forEach(function(cookie) {
-      page.addCookie(cookie)
-    })
-    if (config.viewportSize) {
-      page.viewportSize = config.viewportSize;
-    }
-    page.onConsoleMessage = function(msg) {
-      return system.stdout.writeLine(msg);
-    };
-    page.onResourceError = function(resErr) {
-      if (!config.ignoreResourceErrors) {
-        return system.stdout.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString);
-      }
-    };
-    page.onError = function(msg, traces) {
-      var file, index, line, _j, _len1, _ref1;
-      if (page.evaluate(function() {
-        return window.onerror != null;
-      })) {
-        return;
-      }
-      for (index = _j = 0, _len1 = traces.length; _j < _len1; index = ++_j) {
-        _ref1 = traces[index], line = _ref1.line, file = _ref1.file;
-        traces[index] = "  " + file + ":" + line;
-      }
-      return _this.fail("" + msg + "\n\n" + (traces.join('\n')));
-    };
-    return page.onInitialized = function() {
-      return page.evaluate(function(env) {
-        return window.mochaPhantomJS = {
-          env: env,
-          failures: 0,
-          ended: false,
-          started: false,
-          run: function() {
-            mochaPhantomJS.runArgs = arguments;
-            mochaPhantomJS.started = true;
-            window.callPhantom({
-              'mochaPhantomJS.run': true
-            });
-            return mochaPhantomJS.runner;
-          }
-        };
-      }, system.env);
-    };
   };
 
   Reporter.prototype.loadPage = function() {
@@ -141,7 +129,7 @@ var Reporter = (function() {
   };
 
   Reporter.prototype.onLoadFailed = function() {
-    return this.fail("Failed to load the page. Check the url: " + url);
+    return fail("Failed to load the page. Check the url: " + url);
   };
 
   Reporter.prototype.injectJS = function() {
@@ -150,11 +138,11 @@ var Reporter = (function() {
     })) {
       page.injectJs('core_extensions.js');
       page.evaluate(function(columns) {
-        return Mocha.reporters.Base.window.width = columns;
-      }, parseInt(system.env.COLUMNS || 75) * .75 | 0);
+        return Mocha.reporters.Base.window.width = columns
+      }, parseInt(system.env.COLUMNS || 75) * .75 | 0)
       return true;
     } else {
-      this.fail("Failed to find mocha on the page.");
+      fail("Failed to find mocha on the page.");
       return false;
     }
   };
@@ -199,14 +187,14 @@ var Reporter = (function() {
       if (page.evaluate(function() {
         return !Mocha.reporters.Custom;
       }) || page.evaluate(this.setupReporter) !== true) {
-        this.fail("Failed to use load and use the custom reporter " + reporter);
+        fail("Failed to use load and use the custom reporter " + reporter);
       }
     }
     if (page.evaluate(this.runner)) {
       this.mochaRunAt = new Date().getTime();
       return this.waitForMocha();
     } else {
-      return this.fail("Failed to start mocha.");
+      return fail("Failed to start mocha.");
     }
   };
 
@@ -254,7 +242,7 @@ var Reporter = (function() {
       return mochaPhantomJS.started;
     });
     if (!started && mochaStartWait && startTime + mochaStartWait < Date.now()) {
-      this.fail("Failed to start mocha: Init timeout", 255);
+      fail("Failed to start mocha: Init timeout", 255);
     }
     return started;
   };
