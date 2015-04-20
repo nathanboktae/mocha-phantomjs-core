@@ -7,7 +7,8 @@ var
   config = JSON.parse(system.args[3] || '{}'),
 
   mochaStartWait = config.timeout || 6000,
-  startTime = Date.now()
+  startTime = Date.now(),
+  hookData
 
 if (!url) {
   console.log("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
@@ -19,7 +20,17 @@ if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version
   phantom.exit(-1)
 }
 
-config.hooks = config.hooks ? require(config.hooks) : {}
+if (config.hooks) {
+  hookData = {
+    page: page,
+    config: config,
+    reporter: reporter,
+    startTime: startTime
+  }
+  config.hooks = require(config.hooks)
+} else {
+  config.hooks = {}
+}
 
 // Create and configure the client page
 var
@@ -87,205 +98,152 @@ page.onInitialized = function() {
   }, system.env)
 }
 
+// Load the test page
+page.open(url)
+page.onCallback = function(data) {
+  if (data) {
+    if (data['Mocha.process.stdout.write']) {
+      output.write(data['Mocha.process.stdout.write'])
+    } else if (data['mochaPhantomJS.run']) {
+      if (page.evaluate(function() { return !!window.mocha })) {
+        page.injectJs('core_extensions.js')
+        page.evaluate(function(columns) {
+          return Mocha.reporters.Base.window.width = columns
+        }, parseInt(system.env.COLUMNS || 75) * .75 | 0)
 
-var Reporter = (function() {
-  function Reporter() {}
-
-  Reporter.prototype.run = function() {
-    return this.loadPage();
-  };
-
-  Reporter.prototype.finish = function() {
-    if (config.file) {
-      output.close();
+        waitForRunMocha()
+      } else {
+        fail("Failed to find mocha on the page.");
+      }
+    } else if (typeof data.screenshot === 'string') {
+      page.render(data.screenshot + '.png')
     }
-    return phantom.exit(page.evaluate(function() {
-      return mochaPhantomJS.failures;
-    }));
-  };
+  }
+  return true
+}
+page.onLoadFinished = function(status) {
+  page.onLoadFinished = function() {}
+  if (status !== 'success') {
+    fail("Failed to load the page. Check the url: " + url)
+  }
+  return waitForInitMocha()
+}
 
-  Reporter.prototype.loadPage = function() {
-    var _this = this;
-    page.open(url);
-    page.onLoadFinished = function(status) {
-      page.onLoadFinished = function() {};
-      if (status !== 'success') {
-        _this.onLoadFailed();
-      }
-      return _this.waitForInitMocha();
-    };
-    return page.onCallback = function(data) {
-      if (data != null ? data.hasOwnProperty('Mocha.process.stdout.write') : void 0) {
-        output.write(data['Mocha.process.stdout.write']);
-      } else if (data != null ? data.hasOwnProperty('mochaPhantomJS.run') : void 0) {
-        if (_this.injectJS()) {
-          _this.waitForRunMocha();
-        }
-      } else if (typeof (data != null ? data.screenshot : void 0) === "string") {
-        page.render(data.screenshot + ".png");
-      }
-      return true;
-    };
-  };
+function checkStarted() {
+  var started = page.evaluate(function() { return mochaPhantomJS.started })
 
-  Reporter.prototype.onLoadFailed = function() {
-    return fail("Failed to load the page. Check the url: " + url);
-  };
+  if (!started && mochaStartWait && startTime + mochaStartWait < Date.now()) {
+    fail("Failed to start mocha: Init timeout", 255)
+  }
+  return started
+}
 
-  Reporter.prototype.injectJS = function() {
-    if (page.evaluate(function() {
-      return window.mocha != null;
-    })) {
-      page.injectJs('core_extensions.js');
-      page.evaluate(function(columns) {
-        return Mocha.reporters.Base.window.width = columns
-      }, parseInt(system.env.COLUMNS || 75) * .75 | 0)
-      return true;
-    } else {
-      fail("Failed to find mocha on the page.");
-      return false;
+function waitForRunMocha() {
+  checkStarted() ? runMocha() : setTimeout(waitForRunMocha, 100)
+}
+
+function waitForInitMocha() {
+  if (!checkStarted()) {
+    setTimeout(waitForInitMocha, 100)
+  }
+}
+
+function setupReporter(reporter) {
+  try {
+    mocha.setup({
+      reporter: reporter || Mocha.reporters.Custom
+    })
+    return true
+  } catch (error) {
+    return error
+  }
+}
+
+function runMocha() {
+  // Configure mocha in the page
+  page.evaluate(function(config) {
+    mocha.useColors(config.useColors)
+    mocha.bail(config.bail)
+    if (config.grep) {
+      mocha.grep(config.grep)
     }
-  };
-
-  Reporter.prototype.runMocha = function() {
-    var customReporter, wrappedReporter, wrapper, _base;
-    page.evaluate(function(config) {
-      mocha.useColors(config.useColors);
-      mocha.bail(config.bail);
-      if (config.grep) {
-        mocha.grep(config.grep);
-      }
-      if (config.invert) {
-        return mocha.invert();
-      }
-    }, config);
-    if (typeof (_base = config.hooks).beforeStart === "function") {
-      _base.beforeStart(this);
+    if (config.invert) {
+      mocha.invert()
     }
-    if (page.evaluate(this.setupReporter, reporter) !== true) {
-      customReporter = fs.read(reporter);
-      wrapper = function() {
-        var exports, module, process, require;
-        require = function(what) {
-          var r;
-          what = what.replace(/[^a-zA-Z0-9]/g, '');
-          for (r in Mocha.reporters) {
-            if (r.toLowerCase() === what) {
-              return Mocha.reporters[r];
-            }
+  }, config)
+
+  if (typeof config.hooks.beforeStart === 'function') {
+    config.hooks.beforeStart(hookData) 
+  }
+
+  // setup a the reporter
+  if (page.evaluate(setupReporter, reporter) !== true) {
+    // we failed to set the reporter - likely a 3rd party reporter than needs to be wrapped
+    var customReporter = fs.read(reporter),
+    wrapper = function() {
+      var exports, module, process, require;
+      require = function(what) {
+        what = what.replace(/[^a-zA-Z0-9]/g, '')
+        for (var r in Mocha.reporters) {
+          if (r.toLowerCase() === what) {
+            return Mocha.reporters[r]
           }
-          throw new Error("Your custom reporter tried to require '" + what + "', but Mocha is not running in Node.js in mocha-phantomjs, so Node modules cannot be required - only other reporters");
-        };
-        module = {};
-        exports = undefined;
-        process = Mocha.process;
-        'customreporter';
-        return Mocha.reporters.Custom = exports || module.exports;
+        }
+        throw new Error("Your custom reporter tried to require '" + what + "', but Mocha is not running in Node.js in mocha-phantomjs, so Node modules cannot be required - only other reporters");
       };
-      wrappedReporter = wrapper.toString().replace("'customreporter'", "(function() {" + (customReporter.toString()) + "})()");
-      page.evaluate(wrappedReporter);
-      if (page.evaluate(function() {
-        return !Mocha.reporters.Custom;
-      }) || page.evaluate(this.setupReporter) !== true) {
-        fail("Failed to use load and use the custom reporter " + reporter);
-      }
+      module = {};
+      exports = undefined;
+      process = Mocha.process;
+      'customreporter';
+      return Mocha.reporters.Custom = exports || module.exports;
+    },
+    wrappedReporter = wrapper.toString().replace("'customreporter'", "(function() {" + (customReporter.toString()) + "})()");
+    
+    page.evaluate(wrappedReporter)
+    if (page.evaluate(function() { return !Mocha.reporters.Custom }) ||
+        page.evaluate(setupReporter) !== true) {
+      fail("Failed to use load and use the custom reporter " + reporter)
     }
-    if (page.evaluate(this.runner)) {
-      this.mochaRunAt = new Date().getTime();
-      return this.waitForMocha();
-    } else {
-      return fail("Failed to start mocha.");
-    }
-  };
+  }
 
-  Reporter.prototype.waitForMocha = function() {
-    var ended, _base;
-    ended = page.evaluate(function() {
-      return mochaPhantomJS.ended;
-    });
-    if (ended) {
-      if (typeof (_base = config.hooks).afterEnd === "function") {
-        _base.afterEnd(this);
-      }
-      return this.finish();
-    } else {
-      var self = this
-      return setTimeout(function() {
-        self.waitForMocha()
-      }, 100);
-    }
-  };
-
-  Reporter.prototype.waitForInitMocha = function() {
-    if (!this.checkStarted()) {
-      var self = this
-      setTimeout(function() {
-        self.waitForInitMocha()
-      }, 100);
-    }
-  };
-
-  Reporter.prototype.waitForRunMocha = function() {
-    if (this.checkStarted()) {
-      return this.runMocha();
-    } else {
-      var self = this
-      setTimeout(function() {
-        this.waitForRunMocha()
-      }, 100)
-    }
-  };
-
-  Reporter.prototype.checkStarted = function() {
-    var started;
-    started = page.evaluate(function() {
-      return mochaPhantomJS.started;
-    });
-    if (!started && mochaStartWait && startTime + mochaStartWait < Date.now()) {
-      fail("Failed to start mocha: Init timeout", 255);
-    }
-    return started;
-  };
-
-  Reporter.prototype.setupReporter = function(reporter) {
-    var error;
-    try {
-      mocha.setup({
-        reporter: reporter || Mocha.reporters.Custom
-      });
-      return true;
-    } catch (_error) {
-      error = _error;
-      return error;
-    }
-  };
-
-  Reporter.prototype.runner = function() {
-    var cleanup, error, _ref, _ref1;
+  // Run mocha
+  if (page.evaluate(function() {
     try {
       mochaPhantomJS.runner = mocha.run.apply(mocha, mochaPhantomJS.runArgs);
       if (mochaPhantomJS.runner) {
-        cleanup = function() {
-          mochaPhantomJS.failures = mochaPhantomJS.runner.failures;
-          return mochaPhantomJS.ended = true;
-        };
-        if ((_ref = mochaPhantomJS.runner) != null ? (_ref1 = _ref.stats) != null ? _ref1.end : void 0 : void 0) {
-          cleanup();
+        var cleanup = function() {
+          mochaPhantomJS.failures = mochaPhantomJS.runner.failures
+          mochaPhantomJS.ended = true
+        }
+        if (mochaPhantomJS.runner && mochaPhantomJS.runner.stats && mochaPhantomJS.runner.stats.end) {
+          cleanup()
         } else {
-          mochaPhantomJS.runner.on('end', cleanup);
+          mochaPhantomJS.runner.on('end', cleanup)
         }
       }
       return !!mochaPhantomJS.runner;
-    } catch (_error) {
-      error = _error;
-      return false;
+    } catch (error) {
+      return false
     }
-  };
+  })) {
+    return waitForMocha()
+  } else {
+    return fail("Failed to start mocha.")
+  }
+}
 
-  return Reporter;
-
-})()
-
-var mocha = new Reporter()
-
-mocha.run()
+function waitForMocha() {
+  if (page.evaluate(function() { return mochaPhantomJS.ended })) {
+    if (typeof config.hooks.afterEnd === 'function') {
+      config.hooks.afterEnd(hookData)
+    }
+    if (config.file) {
+      output.close()
+    }
+    return phantom.exit(page.evaluate(function() {
+      return mochaPhantomJS.failures
+    }))
+  } else {
+    return setTimeout(waitForMocha, 100)
+  }
+}
