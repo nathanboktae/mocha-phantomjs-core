@@ -12,7 +12,10 @@
       mocha.reporter('html');
     </script>
     <script>
-      unknownFunctionCall();
+      function foobar() {
+        unknownFunctionCall();
+      }
+      foobar();
 
       if (window.mochaPhantomJS) {
         mochaPhantomJS.run();

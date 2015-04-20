@@ -67,17 +67,12 @@ page.onResourceError = function(resErr) {
   }
 }
 page.onError = function(msg, traces) {
-  var file, index, line, _j, _len1, _ref1;
-  if (page.evaluate(function() {
-    return window.onerror != null;
-  })) {
-    return;
-  }
-  for (index = _j = 0, _len1 = traces.length; _j < _len1; index = ++_j) {
-    _ref1 = traces[index], line = _ref1.line, file = _ref1.file;
-    traces[index] = "  " + file + ":" + line;
-  }
-  return fail("" + msg + "\n\n" + (traces.join('\n')));
+  if (page.evaluate(function() { return !!window.onerror })) return
+
+  fail(msg + '\n' + traces.reduce(function(stack, trace) {
+    return stack + '\n  ' + (trace.function ? ' in ' + trace.function + '' : '')
+            + ' at ' + trace.file + ':' + trace.line
+  }, ''))
 }
 page.onInitialized = function() {
   return page.evaluate(function(env) {
