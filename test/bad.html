@@ -8,11 +8,7 @@
     <script>
       mocha.setup = function() {};
       mocha.run = function() { return false; };
-      if (window.mochaPhantomJS) {
-        mochaPhantomJS.run();
-      } else {
-        mocha.run();
-      }
+      mocha.run();
     </script>
   </body>
 </html>

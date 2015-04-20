@@ -5,9 +5,7 @@ var
   url = system.args[1],
   reporter = system.args[2] || 'spec',
   config = JSON.parse(system.args[3] || '{}'),
-
-  mochaStartWait = config.timeout || 6000,
-  startTime = Date.now(),
+  configured = false,
   hookData
 
 if (!url) {
@@ -24,8 +22,7 @@ if (config.hooks) {
   hookData = {
     page: page,
     config: config,
-    reporter: reporter,
-    startTime: startTime
+    reporter: reporter
   }
   config.hooks = require(config.hooks)
 } else {
@@ -74,89 +71,48 @@ page.onError = function(msg, traces) {
             + ' at ' + trace.file + ':' + trace.line
   }, ''))
 }
-page.onInitialized = function() {
-  return page.evaluate(function(env) {
-    return window.mochaPhantomJS = {
-      env: env,
-      failures: 0,
-      ended: false,
-      started: false,
-      run: function() {
-        mochaPhantomJS.runArgs = arguments;
-        mochaPhantomJS.started = true;
-        window.callPhantom({
-          'mochaPhantomJS.run': true
-        });
-        return mochaPhantomJS.runner;
-      }
-    };
-  }, system.env)
-}
 
 // Load the test page
 page.open(url)
+page.onResourceReceived = function(resource) {
+  if (resource.url.match(/mocha\.js/)) {
+    page.injectJs('core_extensions.js')
+  }
+}
 page.onCallback = function(data) {
   if (data) {
     if (data['Mocha.process.stdout.write']) {
       output.write(data['Mocha.process.stdout.write'])
-    } else if (data['mochaPhantomJS.run']) {
-      if (page.evaluate(function() { return !!window.mocha })) {
-        page.injectJs('core_extensions.js')
-        page.evaluate(function(columns) {
-          return Mocha.reporters.Base.window.width = columns
-        }, parseInt(system.env.COLUMNS || 75) * .75 | 0)
-
-        waitForRunMocha()
-      } else {
-        fail("Failed to find mocha on the page.");
-      }
     } else if (typeof data.screenshot === 'string') {
       page.render(data.screenshot + '.png')
+    } else if (data.configureMocha) {
+      configureMocha()
+    } else if (data.testRunEnded) {
+      if (typeof config.hooks.afterEnd === 'function') {
+        hookData.runner = data.testRunEnded
+        config.hooks.afterEnd(hookData)
+      }
+      if (config.file) {
+        output.close()
+      }
+      phantom.exit(data.testRunEnded.failures)
     }
   }
   return true
 }
 page.onLoadFinished = function(status) {
-  page.onLoadFinished = function() {}
   if (status !== 'success') {
-    fail("Failed to load the page. Check the url: " + url)
-  }
-  return waitForInitMocha()
-}
-
-function checkStarted() {
-  var started = page.evaluate(function() { return mochaPhantomJS.started })
-
-  if (!started && mochaStartWait && startTime + mochaStartWait < Date.now()) {
-    fail("Failed to start mocha: Init timeout", 255)
-  }
-  return started
-}
-
-function waitForRunMocha() {
-  checkStarted() ? runMocha() : setTimeout(waitForRunMocha, 100)
-}
-
-function waitForInitMocha() {
-  if (!checkStarted()) {
-    setTimeout(waitForInitMocha, 100)
+    fail('Failed to load the page. Check the url: ' + url)
+  } else if (!configured) {
+    fail('Failed to run any tests.')
   }
 }
 
-function setupReporter(reporter) {
-  try {
-    mocha.setup({
-      reporter: reporter || Mocha.reporters.Custom
-    })
-    return true
-  } catch (error) {
-    return error
-  }
-}
+function configureMocha() {
+  page.evaluate(function(config, env, columns) {
+    Mocha.reporters.Base.window.width = columns
+    mocha.env = env
 
-function runMocha() {
-  // Configure mocha in the page
-  page.evaluate(function(config) {
     mocha.useColors(config.useColors)
     mocha.bail(config.bail)
     if (config.grep) {
@@ -165,11 +121,7 @@ function runMocha() {
     if (config.invert) {
       mocha.invert()
     }
-  }, config)
-
-  if (typeof config.hooks.beforeStart === 'function') {
-    config.hooks.beforeStart(hookData) 
-  }
+  }, config, system.env, parseInt(system.env.COLUMNS || 75) * .75 | 0)
 
   // setup a the reporter
   if (page.evaluate(setupReporter, reporter) !== true) {
@@ -192,53 +144,28 @@ function runMocha() {
       'customreporter';
       return Mocha.reporters.Custom = exports || module.exports;
     },
-    wrappedReporter = wrapper.toString().replace("'customreporter'", "(function() {" + (customReporter.toString()) + "})()");
+    wrappedReporter = wrapper.toString().replace("'customreporter'", "(function() {" + (customReporter.toString()) + "})()")
     
     page.evaluate(wrappedReporter)
     if (page.evaluate(function() { return !Mocha.reporters.Custom }) ||
         page.evaluate(setupReporter) !== true) {
-      fail("Failed to use load and use the custom reporter " + reporter)
+      fail('Failed to use load and use the custom reporter ' + reporter)
     }
   }
 
-  // Run mocha
-  if (page.evaluate(function() {
-    try {
-      mochaPhantomJS.runner = mocha.run.apply(mocha, mochaPhantomJS.runArgs);
-      if (mochaPhantomJS.runner) {
-        var cleanup = function() {
-          mochaPhantomJS.failures = mochaPhantomJS.runner.failures
-          mochaPhantomJS.ended = true
-        }
-        if (mochaPhantomJS.runner && mochaPhantomJS.runner.stats && mochaPhantomJS.runner.stats.end) {
-          cleanup()
-        } else {
-          mochaPhantomJS.runner.on('end', cleanup)
-        }
-      }
-      return !!mochaPhantomJS.runner;
-    } catch (error) {
-      return false
-    }
-  })) {
-    return waitForMocha()
-  } else {
-    return fail("Failed to start mocha.")
+  if (typeof config.hooks.beforeStart === 'function') {
+    config.hooks.beforeStart(hookData) 
   }
+  configured = true
 }
 
-function waitForMocha() {
-  if (page.evaluate(function() { return mochaPhantomJS.ended })) {
-    if (typeof config.hooks.afterEnd === 'function') {
-      config.hooks.afterEnd(hookData)
-    }
-    if (config.file) {
-      output.close()
-    }
-    return phantom.exit(page.evaluate(function() {
-      return mochaPhantomJS.failures
-    }))
-  } else {
-    return setTimeout(waitForMocha, 100)
+function setupReporter(reporter) {
+  try {
+    mocha.setup({
+      reporter: reporter || Mocha.reporters.Custom
+    })
+    return true
+  } catch (error) {
+    return error
   }
 }
