@@ -5,10 +5,13 @@ var
   url = system.args[1],
   reporter = system.args[2] || 'spec',
   config = JSON.parse(system.args[3] || '{}'),
+
+  mochaStartWait = config.timeout || 6000,
+  startTime = Date.now(),
   page
 
 if (!url) {
-  console.log("Usage: phantomjs mocha-phantomjs.coffee URL REPORTER [CONFIG]")
+  console.log("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
   phantom.exit(0)
 }
 
@@ -23,26 +26,14 @@ if (config.hooks) {
   config.hooks = {}
 }
 
+var output = config.file ? fs.open(config.file, 'w') : system.stdout
+
 var Reporter = (function() {
-  function Reporter() {
-    this.reporter = reporter;
-    this.url = url;
-    this.columns = parseInt(system.env.COLUMNS || 75) * .75 | 0;
-    this.mochaStartWait = config.timeout || 6000;
-    this.startTime = Date.now();
-    this.output = config.file ? fs.open(config.file, 'w') : system.stdout;
-    if (!this.url) {
-      this.fail(USAGE);
-    }
-  }
+  function Reporter() {}
 
   Reporter.prototype.run = function() {
     this.initPage();
     return this.loadPage();
-  };
-
-  Reporter.prototype.customizeMocha = function(options) {
-    return Mocha.reporters.Base.window.width = options.columns;
   };
 
   Reporter.prototype.customizeOptions = function() {
@@ -52,8 +43,8 @@ var Reporter = (function() {
   };
 
   Reporter.prototype.fail = function(msg, errno) {
-    if (this.output && config.file) {
-      this.output.close();
+    if (output && config.file) {
+      output.close();
     }
     if (msg) {
       console.log(msg);
@@ -63,7 +54,7 @@ var Reporter = (function() {
 
   Reporter.prototype.finish = function() {
     if (config.file) {
-      this.output.close();
+      output.close();
     }
     return phantom.exit(page.evaluate(function() {
       return mochaPhantomJS.failures;
@@ -127,7 +118,7 @@ var Reporter = (function() {
 
   Reporter.prototype.loadPage = function() {
     var _this = this;
-    page.open(this.url);
+    page.open(url);
     page.onLoadFinished = function(status) {
       page.onLoadFinished = function() {};
       if (status !== 'success') {
@@ -137,7 +128,7 @@ var Reporter = (function() {
     };
     return page.onCallback = function(data) {
       if (data != null ? data.hasOwnProperty('Mocha.process.stdout.write') : void 0) {
-        _this.output.write(data['Mocha.process.stdout.write']);
+        output.write(data['Mocha.process.stdout.write']);
       } else if (data != null ? data.hasOwnProperty('mochaPhantomJS.run') : void 0) {
         if (_this.injectJS()) {
           _this.waitForRunMocha();
@@ -150,7 +141,7 @@ var Reporter = (function() {
   };
 
   Reporter.prototype.onLoadFailed = function() {
-    return this.fail("Failed to load the page. Check the url: " + this.url);
+    return this.fail("Failed to load the page. Check the url: " + url);
   };
 
   Reporter.prototype.injectJS = function() {
@@ -158,7 +149,9 @@ var Reporter = (function() {
       return window.mocha != null;
     })) {
       page.injectJs('core_extensions.js');
-      page.evaluate(this.customizeMocha, this.customizeOptions());
+      page.evaluate(function(columns) {
+        return Mocha.reporters.Base.window.width = columns;
+      }, parseInt(system.env.COLUMNS || 75) * .75 | 0);
       return true;
     } else {
       this.fail("Failed to find mocha on the page.");
@@ -181,8 +174,8 @@ var Reporter = (function() {
     if (typeof (_base = config.hooks).beforeStart === "function") {
       _base.beforeStart(this);
     }
-    if (page.evaluate(this.setupReporter, this.reporter) !== true) {
-      customReporter = fs.read(this.reporter);
+    if (page.evaluate(this.setupReporter, reporter) !== true) {
+      customReporter = fs.read(reporter);
       wrapper = function() {
         var exports, module, process, require;
         require = function(what) {
@@ -206,7 +199,7 @@ var Reporter = (function() {
       if (page.evaluate(function() {
         return !Mocha.reporters.Custom;
       }) || page.evaluate(this.setupReporter) !== true) {
-        this.fail("Failed to use load and use the custom reporter " + this.reporter);
+        this.fail("Failed to use load and use the custom reporter " + reporter);
       }
     }
     if (page.evaluate(this.runner)) {
@@ -260,7 +253,7 @@ var Reporter = (function() {
     started = page.evaluate(function() {
       return mochaPhantomJS.started;
     });
-    if (!started && this.mochaStartWait && this.startTime + this.mochaStartWait < Date.now()) {
+    if (!started && mochaStartWait && startTime + mochaStartWait < Date.now()) {
       this.fail("Failed to start mocha: Init timeout", 255);
     }
     return started;

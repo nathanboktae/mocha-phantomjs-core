@@ -35,7 +35,6 @@
     "bluebird": "^2.9.24",
     "chai": "^2.2.0",
     "co-mocha": "^1.1.0",
-    "coffee-script": "^1.9.1",
-    "phantomjs": "1.9.16"
+    "coffee-script": "^1.9.1"
   }
 }
