@@ -10,6 +10,6 @@ before_script:
   - "if [ -n \"$PHANTOMJS1\" ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-1.9.7-linux-x86_64.tar.bz2 -O - | tar -xj; fi"
   - "if [ -n \"$PHANTOMJS1\" ]; then mv phantomjs-1.9.7-linux-x86_64/bin/phantomjs .; fi"
   - "if [ -n \"$PHANTOMJS2\" ]; then wget https://github.com/bprodoehl/phantomjs/releases/download/2.0.0-20141016/phantomjs-2.0.0-20141016-u1404-x86_64.zip; fi"
-  - "if [ -n \"$PHANTOMJS2\" ]; then unzip -j phantomjs-2.0.0-20141016-u1410-x86_64.zip phantomjs-2.0.0-20141016/bin/phantomjs -d .; fi"
+  - "if [ -n \"$PHANTOMJS2\" ]; then unzip -j phantomjs-2.0.0-20141016-u1404-x86_64.zip phantomjs-2.0.0-20141016/bin/phantomjs -d .; fi"
 
 script: npm test
