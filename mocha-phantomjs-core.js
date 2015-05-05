@@ -9,12 +9,12 @@ var
   hookData
 
 if (!url) {
-  console.log("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
+  system.stderr.writeLine("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
   phantom.exit(0)
 }
 
 if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version.minor < 9)) {
-  console.log('mocha-phantomjs requires PhantomJS > 1.9.1')
+  system.stderr.writeLine('mocha-phantomjs requires PhantomJS > 1.9.1')
   phantom.exit(-1)
 }
 
@@ -40,7 +40,7 @@ var
       output.close()
     }
     if (msg) {
-      console.log(msg)
+      system.stderr.writeLine(msg)
     }
     return phantom.exit(errno || 1)
   }
@@ -60,7 +60,7 @@ page.onConsoleMessage = function(msg) {
 }
 page.onResourceError = function(resErr) {
   if (!config.ignoreResourceErrors) {
-    return system.stdout.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
+    return system.stderr.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
   }
 }
 page.onError = function(msg, traces) {
@@ -81,8 +81,8 @@ page.onResourceReceived = function(resource) {
 }
 page.onCallback = function(data) {
   if (data) {
-    if (data['Mocha.process.stdout.write']) {
-      output.write(data['Mocha.process.stdout.write'])
+    if (data.stdout) {
+      output.write(data.stdout)
     } else if (typeof data.screenshot === 'string') {
       page.render(data.screenshot + '.png')
     } else if (data.configureMocha) {

@@ -18,36 +18,33 @@
 
   function isFileReady(readyState) {
     // Check to see if any of the ways a file can be ready are available as properties on the file's element
-    return (!readyState || readyState == 'loaded' || readyState == 'complete' || readyState == 'uninitialized');
+    return (!readyState || readyState == 'loaded' || readyState == 'complete' || readyState == 'uninitialized')
   }
 
   mochaScript.onreadystatechange = mochaScript.onload = function () {
-    //console.log('is mocha loaded?')
     if (isFileReady(mochaScript.readyState)) {
-      //console.log('- yup!')
       // Mocha needs a process.stdout.write in order to change the cursor position.
-      Mocha.process = Mocha.process || {};
-      Mocha.process.stdout = Mocha.process.stdout || process.stdout;
-      Mocha.process.stdout.write = function(s) { window.callPhantom({"Mocha.process.stdout.write":s}); }
+      Mocha.process = Mocha.process || {}
+      Mocha.process.stdout = Mocha.process.stdout || process.stdout
+      Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
 
       var origRun = mocha.run, origUi = mocha.ui
       mocha.ui = function() {
-        //console.log(' -- mocha.ui ')
-        origUi.apply(mocha, arguments)
+        var retval = origUi.apply(mocha, arguments)
         window.callPhantom({ configureMocha: true })
         mocha.reporter = function() {}
+        return retval
       }
       mocha.run = function() {
-        //console.log(' -- mocha.run ')
         mocha.runner = origRun.apply(mocha, arguments)
         if (mocha.runner.stats && mocha.runner.stats.end) {
           window.callPhantom({ testRunEnded: mocha.runner })
         } else {
           mocha.runner.on('end', function() {
-            //console.log(' -- mocha.runner.end ')
             window.callPhantom({ testRunEnded: mocha.runner })
           })
         }
+        return mocha.runner
       }
     }
   }

@@ -36,20 +36,20 @@ describe 'mocha-phantomjs-core', ->
   xit 'returns a failure code and shows usage when no args are given', ->
     run done, [], (code, stdout, stderr) ->
       code.should.equal 1
-      stdout.should.match /Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]/
+      stderr.should.match /Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]/
 
   it 'returns a failure code and notifies of bad url when given one', ->
     @timeout = 4000
-    { code, stdout } = yield run { url: 'foo/bar.html' }
+    { code, stderr } = yield run { url: 'foo/bar.html' }
     code.should.equal 1
-    stdout.should.match /failed to load the page/i
-    stdout.should.match /check the url/i
-    stdout.should.match /foo\/bar.html/i
+    stderr.should.match /failed to load the page/i
+    stderr.should.match /check the url/i
+    stderr.should.match /foo\/bar.html/i
 
   it 'returns a failure code and notifies of no such runner class', ->
-    { code, stdout } = yield run { reporter: 'nonesuch' }
+    { code, stderr } = yield run { reporter: 'nonesuch' }
     code.should.equal 1
-    stdout.should.match /Unable to open file 'nonesuch'/
+    stderr.should.match /Unable to open file 'nonesuch'/
 
   it 'returns a success code when a directory exists with the same name as a built-in runner', ->
     fs.mkdir 'spec'
@@ -58,29 +58,29 @@ describe 'mocha-phantomjs-core', ->
     code.should.equal 0
 
   it 'returns a failure code when mocha can not be found on the page', ->
-    { code, stdout } = yield run { test: 'blank' }
+    { code, stderr } = yield run { test: 'blank' }
     code.should.equal 1
-    stdout.should.match /Failed to run any tests/
+    stderr.should.match /Failed to run any tests/
 
   it 'returns a failure code when mocha fails to start for any reason', ->
-    { code, stdout } = yield run { test: 'bad' }
+    { code, stderr } = yield run { test: 'bad' }
     code.should.equal 1
-    stdout.should.match /Failed to run any tests/
+    stderr.should.match /Failed to run any tests/
 
   it 'returns a failure code when mocha is not started in a timely manner', ->
-    { code, stdout } = yield run { test: 'timeout', timeout: 500 }
+    { code, stderr } = yield run { test: 'timeout', timeout: 500 }
     code.should.not.equal 0
-    stdout.should.match /Failed to run any tests/
+    stderr.should.match /Failed to run any tests/
 
   it 'returns a failure code when there is a page error', ->
-    { code, stdout } = yield run { test: 'error' }
+    { code, stderr } = yield run { test: 'error' }
     code.should.equal 1
-    stdout.should.match /ReferenceError/
+    stderr.should.match /ReferenceError/
 
   it 'does not fail when an iframe is used', ->
     { code, stdout, stderr } = yield run { test: 'iframe' }
+    stderr.should.not.match /Failed to load the page\./m
     stdout.should.not.match /Failed to load the page\./m
-    stderr.should.be.empty
     code.should.equal 0
 
   it 'returns the mocha runner from run() and allows modification of it', ->
@@ -138,11 +138,11 @@ describe 'mocha-phantomjs-core', ->
       stdout.should.match /<h1>Tests Mixed<\/h1>/
 
     it 'gives a useful error when trying to require a node module', ->
-      { code, stdout } = yield run
+      { code, stderr } = yield run
         reporter: process.cwd() + '/test/reporters/node-only.js'
         test: 'mixed'
 
-      stdout.should.match /Node modules cannot be required/
+      stderr.should.match /Node modules cannot be required/
       code.should.not.equal 0      
 
   describe 'hooks', ->
@@ -264,16 +264,16 @@ describe 'mocha-phantomjs-core', ->
 
     describe 'ignore resource errors', ->
       it 'by default shows resource errors', ->
-        { code, stdout } = yield run { test: 'resource-errors' }
-        stdout.should.contain('Error loading resource').and.contain('nonexistant-file.css')
+        { code, stderr } = yield run { test: 'resource-errors' }
+        stderr.should.contain('Error loading resource').and.contain('nonexistant-file.css')
         code.should.equal 0
 
       it 'can suppress resource errors', ->
-        { stdout } = yield run { test: 'resource-errors', ignoreResourceErrors: true }
-        stdout.should.not.contain('Error loading resource')
+        { stderr } = yield run { test: 'resource-errors', ignoreResourceErrors: true }
+        stderr.should.be.empty
 
   describe 'env', ->
     it 'has passed environment variables', ->
       process.env.FOO = 'yowzer'
-      { stdout, stderr } = yield run { test: 'env' }
+      { stdout } = yield run { test: 'env' }
       stdout.should.match /^yowzer/
