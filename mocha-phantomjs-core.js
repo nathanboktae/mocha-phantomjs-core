@@ -82,7 +82,7 @@ page.onError = function(msg, traces) {
 page.open(url)
 page.onResourceReceived = function(resource) {
   if (resource.url.match(/mocha\.js/)) {
-    page.injectJs('core_extensions.js')
+    page.injectJs('browser-shim.js')
   }
 }
 page.onCallback = function(data) {
