@@ -9,13 +9,13 @@ var
   hookData
 
 if (!url) {
-  system.stderr.writeLine("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
-  phantom.exit(0)
+  system.stdout.writeLine("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
+  phantom.exit(-1)
 }
 
 if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version.minor < 9)) {
   system.stderr.writeLine('mocha-phantomjs requires PhantomJS > 1.9.1')
-  phantom.exit(-1)
+  phantom.exit(-2)
 }
 
 if (config.hooks) {
@@ -24,7 +24,13 @@ if (config.hooks) {
     config: config,
     reporter: reporter
   }
-  config.hooks = require(config.hooks)
+  try {
+    config.hooks = require(config.hooks)
+  }
+  catch (e) {
+    system.stderr.writeLine('Error loading hooks: ' + e.message)
+    phantom.exit(-3)
+  }
 } else {
   config.hooks = {}
 }

@@ -25,6 +25,7 @@ describe 'mocha-phantomjs-core', ->
         opts.reporter or 'spec',
         JSON.stringify(opts)
       ]
+      spawnArgs = [spawnArgs[0]] if opts.noargs
       mochaPhantomJS = spawn "#{process.cwd()}/phantomjs", spawnArgs
       mochaPhantomJS.stdout.on 'data', (data) -> stdout = stdout.concat data.toString()
       mochaPhantomJS.stderr.on 'data', (data) -> stderr = stderr.concat data.toString()
@@ -33,10 +34,10 @@ describe 'mocha-phantomjs-core', ->
       mochaPhantomJS.on 'error', (err) -> reject err
 
 
-  xit 'returns a failure code and shows usage when no args are given', ->
-    run done, [], (code, stdout, stderr) ->
-      code.should.equal 1
-      stderr.should.match /Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]/
+  it 'returns a failure code and shows usage when no args are given', ->
+    { code, stdout } = yield run { noargs: true }
+    code.should.equal 255
+    stdout.should.contain 'Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]'
 
   it 'returns a failure code and notifies of bad url when given one', ->
     @timeout = 4000
@@ -146,11 +147,12 @@ describe 'mocha-phantomjs-core', ->
       code.should.not.equal 0      
 
   describe 'hooks', ->
-    xit 'should fail gracefully if they do not exist', ->
-      { code } = yield run
+    it 'should fail gracefully if they do not exist', ->
+      { code, stderr } = yield run
         hooks: 'nonexistant-file.js'
 
       code.should.not.equal 0
+      stderr.should.contain "Error loading hooks: Cannot find module 'nonexistant-file.js'"
     
     describe 'before start', ->
       it 'is called', ->
@@ -223,10 +225,11 @@ describe 'mocha-phantomjs-core', ->
         stdout.should.not.match /passes/
 
     describe 'colors', ->
-      xit 'by default outputs in color', ->
+      it 'can force output in color', ->
         { stdout } = yield run
           reporter: 'dot'
           test: 'mixed'
+          useColors: true
         
         stdout.should.match /\u001b\[90m\․\u001b\[0m/ # grey
         stdout.should.match /\u001b\[36m\․\u001b\[0m/ # cyan
