@@ -47,7 +47,8 @@ describe 'mocha-phantomjs-core', ->
     stderr.should.match /check the url/i
     stderr.should.match /foo\/bar.html/i
 
-  it 'returns a failure code and notifies of no such runner class', ->
+  # https://github.com/ariya/phantomjs/issues/12973
+  it 'returns a failure code and notifies of no such runner class', !process.env.PHANTOMJS2 and ->
     { code, stderr } = yield run { reporter: 'nonesuch' }
     code.should.equal 1
     stderr.should.match /Unable to open file 'nonesuch'/
@@ -244,8 +245,7 @@ describe 'mocha-phantomjs-core', ->
         stdout.should.not.match /\u001b\[\d\dm/
 
     describe 'bail', ->
-      # https://github.com/nathanboktae/mocha-phantomjs-core/issues/3
-      it 'should bail on the first error', process.env.PHANTOMJS2 and ->
+      it 'should bail on the first error', ->
         { stdout } = yield run
           test: 'mixed'
           bail: true
