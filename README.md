@@ -6,7 +6,7 @@ So now that you got your tests [Mocha](http://mochajs.org/) running on a simple 
 
 Rather than force you to redo your test harness and local development testing, simply run `phantomjs mocha-phantomjs-core.js spec tests/mytests.html` and be done with it. `mocha-phantomjs-core` builds on top of what you already have, with no high barrier to entry like Karma.
 
-## The core of [mocha-phantomjs]
+## The core of [mocha-phantomjs](https://github.com/metaskills/mocha-phantomjs)
 
 This project is the core phantomjs code for `mocha-phantomjs`. If you are a regular user wanting to use it from the command line, you'll want to go there. If you are a build plugin author, or want direct control over how phantomjs is invoked, you are in the right place.
 
@@ -26,33 +26,33 @@ phantomjs mocha-phantomjs-core.js <TESTS> <REPORTER> <CONFIG as JSON>
 
 It's best to always refer to [the tests](https://github.com/nathanboktae/mocha-phantomjs-core/blob/master/test/core.tests.coffee) for full usage and examples.
 
-#### reporter
+#### `reporter`
 
 One of mocha's built in reporters, or a full path to a file for a 3rd party reporter (see below on how to write one).
 
-#### grep
+#### `grep`
 
 a string to pass to `mocha.grep()` to filter tests. also provide `invert: true` if you want to invert the grep and filter out tests.
 
-#### useColors
+#### `useColors`
 
 Boolean. Force or suppress color usage. Defaults to what your terminal supports.
 
-#### bail
+#### `bail`
 
 Boolean. Stop the test run at the first failure if true. Defaults to false.
 
-#### ignoreResourceErrors
+#### `ignoreResourceErrors`
 
 Boolean. Suppress the resource failure output that `mocha-phantomjs-core` will output by default.
 
-#### viewportSize
+#### `viewportSize`
 
 Sets the viewport size. Specify `height` and `width`, like below:
 
-#### settings
+#### `settings`
 
-If you need to pass [additional settings](https://github.com/ariya/phantomjs/wiki/API-Reference-WebPage#webpage-settings) to the phantomjs webpage, you can specify an object of settings here.
+If you need to pass [additional settings](https://github.com/ariya/phantomjs/wiki/API-Reference-WebPage#webpage-settings) to the phantomjs webpage, you can specify an object of settings here, including common ones like `userAgent` and `loadImages`.
 
 ```
 phantomjs mocha-phantomjs-core.js dot tests/mytests.html "{\"viewportSize\":{\"width\":720,\"height\":480}}"
@@ -101,11 +101,18 @@ Also, no compilers are supported currently, so please provide plain ECMAScript 5
 
 ## Testing
 
-Simple! Just clone the repo, then run `npm install` and the various node development dependencies will install to the `node_modules` directory of the project. If you have not done so, it is typically a good idea to add `/node_modules/.bin` to your `$PATH` so these modules bins are used. Now run `npm test` to start off the test suite.
+```
+npm install
+npm test
+```
 
-We also use Travis CI to run our tests too. The current build status:
+Travis CI does a matrix build against phantomjs 1.9.7 and 2.0.0, currently. See `.travis.yml` for the latest.
 
-[![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
+To debug an individual test, since they are just process forks, you may want to run them directly, like
+
+```
+phantomjs mocha-phantomjs-core.js test/timeout.html spec "{\"timeout\":500}"
+```
 
 ## License
 
