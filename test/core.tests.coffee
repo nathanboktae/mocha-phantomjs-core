@@ -186,7 +186,8 @@ describe 'mocha-phantomjs-core', ->
         stdout.should.match /^mocha=UserAgent/
 
     describe 'cookies', ->
-      it 'has passed cookies', ->
+      # https://github.com/nathanboktae/mocha-phantomjs-core/issues/4
+      it 'has passed cookies', !process.env.PHANTOMJS2 and ->
         { stdout } = yield run
           test: 'cookie'
           cookies: [
@@ -243,7 +244,8 @@ describe 'mocha-phantomjs-core', ->
         stdout.should.not.match /\u001b\[\d\dm/
 
     describe 'bail', ->
-      it 'should bail on the first error', ->
+      # https://github.com/nathanboktae/mocha-phantomjs-core/issues/3
+      it 'should bail on the first error', process.env.PHANTOMJS2 and ->
         { stdout } = yield run
           test: 'mixed'
           bail: true
