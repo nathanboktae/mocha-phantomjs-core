@@ -55,11 +55,14 @@
   if (!console.format) {
     console.format = function(f) {
       if (typeof f !== 'string') {
-        var objects = [];
-        for (var i = 0; i < arguments.length; i++) {
-          objects.push(JSON.stringify(arguments[i]));
-        }
-        return objects.join(' ');
+        return Array.prototype.map.call(arguments, function(arg) {
+          try {
+            return JSON.stringify(arg)
+          }
+          catch (_) {
+            return '[Circular]'
+          }
+        }).join(' ')
       }
       var i = 1;
       var args = arguments;
@@ -70,7 +73,12 @@
         switch (x) {
           case '%s': return String(args[i++]);
           case '%d': return Number(args[i++]);
-          case '%j': return JSON.stringify(args[i++]);
+          case '%j':
+            try {
+              return JSON.stringify(args[i++]);
+            } catch (_) {
+              return '[Circular]';
+            }
           default:
             return x;
         }

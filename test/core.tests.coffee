@@ -1,12 +1,11 @@
 describe 'mocha-phantomjs-core', ->
 
   chai = require 'chai'
-  expect = chai.expect
   should = chai.should()
   spawn = require('child_process').spawn
-  url = require('url')
-  fs = require('fs')
-  Promise = require('bluebird')
+  url = require 'url'
+  fs = require 'fs'
+  Promise = require 'bluebird'
 
   fileURL = (file) ->
     fullPath = fs.realpathSync "#{process.cwd()}/test/#{file}.html"
@@ -78,6 +77,13 @@ describe 'mocha-phantomjs-core', ->
     { code, stderr } = yield run { test: 'error' }
     code.should.equal 1
     stderr.should.match /ReferenceError/
+
+  it 'does not fail when console.log is used with circular reference object', ->
+    { code, stdout, stderr } = yield run { test: 'console-log' }
+    # code.should.equal 0
+    stderr.should.not.match /cannot serialize cyclic structures\./m
+    stdout.should.not.match /cannot serialize cyclic structures\./m
+    stdout.should.contain '[Circular]'
 
   it 'does not fail when an iframe is used', ->
     { code, stdout, stderr } = yield run { test: 'iframe' }
@@ -155,21 +161,19 @@ describe 'mocha-phantomjs-core', ->
       code.should.not.equal 0
       stderr.should.contain "Error loading hooks: Cannot find module 'nonexistant-file.js'"
     
-    describe 'before start', ->
-      it 'is called', ->
-        { code, stdout } = yield run
-          hooks: process.cwd() + '/test/hooks/before-start.js'
+    it 'has a hook for before tests are started', ->
+      { code, stdout } = yield run
+        hooks: process.cwd() + '/test/hooks/before-start.js'
 
-        stdout.should.contain 'Before start called!'
-        code.should.equal 0
-
-    describe 'after end', ->
-      it 'is called', ->
-        { code, stdout } = yield run
-          hooks: process.cwd() + '/test/hooks/after-end.js'
-        
-        stdout.should.contain 'After end called!'
-        code.should.equal 0
+      stdout.should.contain 'Before start called!'
+      code.should.equal 0
+    
+    it 'has a hook for after the test run finishes', ->
+      { code, stdout } = yield run
+        hooks: process.cwd() + '/test/hooks/after-end.js'
+      
+      stdout.should.contain 'After end called!'
+      code.should.equal 0
 
 
   describe 'config', ->
