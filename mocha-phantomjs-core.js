@@ -18,6 +18,22 @@ if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version
   phantom.exit(-2)
 }
 
+// Create and configure the client page
+var
+  output = config.file ? fs.open(config.file, 'w') : system.stdout,
+  page = webpage.create({
+    settings: config.settings
+  }),
+  fail = function(msg, errno) {
+    if (output && config.file) {
+      output.close()
+    }
+    if (msg) {
+      system.stderr.writeLine(msg)
+    }
+    return phantom.exit(errno || 1)
+  }
+
 if (config.hooks) {
   hookData = {
     page: page,
@@ -34,22 +50,6 @@ if (config.hooks) {
 } else {
   config.hooks = {}
 }
-
-// Create and configure the client page
-var
-  output = config.file ? fs.open(config.file, 'w') : system.stdout,
-  page = webpage.create({
-    settings: config.settings
-  }),
-  fail = function(msg, errno) {
-    if (output && config.file) {
-      output.close()
-    }
-    if (msg) {
-      system.stderr.writeLine(msg)
-    }
-    return phantom.exit(errno || 1)
-  }
 
 if (config.headers) {
   page.customHeaders = config.headers
