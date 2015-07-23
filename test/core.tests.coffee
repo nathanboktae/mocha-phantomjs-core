@@ -165,14 +165,14 @@ describe 'mocha-phantomjs-core', ->
       { code, stdout } = yield run
         hooks: process.cwd() + '/test/hooks/before-start.js'
 
-      stdout.should.contain 'Before start called!'
+      stdout.should.contain 'Before start called correctly!'
       code.should.equal 0
     
     it 'has a hook for after the test run finishes', ->
       { code, stdout } = yield run
         hooks: process.cwd() + '/test/hooks/after-end.js'
       
-      stdout.should.contain 'After end called!'
+      stdout.should.contain 'After end called correctly!'
       code.should.equal 0
 
 
