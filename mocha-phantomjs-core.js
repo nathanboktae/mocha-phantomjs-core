@@ -6,6 +6,7 @@ var
   reporter = system.args[2] || 'spec',
   config = JSON.parse(system.args[3] || '{}'),
   configured = false,
+  runStarted = false,
   hookData
 
 if (!url) {
@@ -81,7 +82,7 @@ page.onError = function(msg, traces) {
 // Load the test page
 page.open(url)
 page.onResourceReceived = function(resource) {
-  if (resource.url.match(/mocha\.js/)) {
+  if (resource.url.match(/mocha\.js$/)) {
     page.injectJs('browser-shim.js')
   }
 }
@@ -93,6 +94,8 @@ page.onCallback = function(data) {
       page.render(data.screenshot + '.png')
     } else if (data.configureMocha) {
       configureMocha()
+    } else if (data.testRunStarted) {
+      runStarted = true
     } else if (data.testRunEnded) {
       if (typeof config.hooks.afterEnd === 'function') {
         hookData.runner = data.testRunEnded
@@ -110,7 +113,14 @@ page.onLoadFinished = function(status) {
   if (status !== 'success') {
     fail('Failed to load the page. Check the url: ' + url)
   } else if (!configured) {
-    fail('Failed to run any tests.')
+    fail('mocha was not initialized before the page finished loading. Make sure to include mocha.js as a direct script and call `mocha.ui` or `mocha.setup`.')
+  } else if (!runStarted) {
+    var timeout = config.timeout || 10000
+    setTimeout(function() {
+      if (!runStarted) {
+        fail('mocha.run() was not called within ' + timeout + 'ms of the page loading.')
+      }
+    }, timeout)
   }
 }
 

@@ -14,7 +14,10 @@
   }
 
   var scriptTags = document.querySelectorAll('script'),
-      mochaScript = scriptTags[scriptTags.length - 1] 
+      mochaScript = Array.prototype.filter.call(scriptTags, function(s) {
+        var src = s.getAttribute('src')
+        return src && src.match(/mocha\.js$/)
+      })[0]
 
   function isFileReady(readyState) {
     // Check to see if any of the ways a file can be ready are available as properties on the file's element
@@ -36,6 +39,7 @@
         return retval
       }
       mocha.run = function() {
+        window.callPhantom({ testRunStarted: true })
         mocha.runner = origRun.apply(mocha, arguments)
         if (mocha.runner.stats && mocha.runner.stats.end) {
           window.callPhantom({ testRunEnded: mocha.runner })

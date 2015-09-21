@@ -61,17 +61,17 @@ describe 'mocha-phantomjs-core', ->
   it 'returns a failure code when mocha can not be found on the page', ->
     { code, stderr } = yield run { test: 'blank' }
     code.should.equal 1
-    stderr.should.match /Failed to run any tests/
+    stderr.should.match /mocha was not initialized before the page finished loading/
 
   it 'returns a failure code when mocha fails to start for any reason', ->
     { code, stderr } = yield run { test: 'bad' }
     code.should.equal 1
-    stderr.should.match /Failed to run any tests/
+    stderr.should.match /mocha was not initialized before the page finished loading/
 
-  it 'returns a failure code when mocha is not started in a timely manner', ->
-    { code, stderr } = yield run { test: 'timeout', timeout: 500 }
+  it 'returns a failure code when mocha is not started within the timeout after the page loads', ->
+    { code, stderr } = yield run { test: 'no-mocha-run', timeout: 500 }
     code.should.not.equal 0
-    stderr.should.match /Failed to run any tests/
+    stderr.should.match /mocha.run\(\) was not called within 500ms of the page loading/
 
   it 'returns a failure code when there is a page error', ->
     { code, stderr } = yield run { test: 'error' }
@@ -89,6 +89,12 @@ describe 'mocha-phantomjs-core', ->
     { code, stdout, stderr } = yield run { test: 'iframe' }
     stderr.should.not.match /Failed to load the page\./m
     stdout.should.not.match /Failed to load the page\./m
+    code.should.equal 0
+
+  it 'allows delayed initialization when using AMD modules', ->
+    { code, stdout, stderr } = yield run { test: 'amd' }
+    stderr.should.not.match /Failed to load the page\./m
+    stdout.should.match /3 passing/m
     code.should.equal 0
 
   it 'returns the mocha runner from run() and allows modification of it', ->
