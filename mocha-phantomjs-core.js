@@ -94,7 +94,10 @@ page.onCallback = function(data) {
       page.render(data.screenshot + '.png')
     } else if (data.configureMocha) {
       configureMocha()
-    } else if (data.testRunStarted) {
+    } else if ('testRunStarted' in data) {
+      if (data.testRunStarted == 0) {
+        fail('mocha.run() was called with no tests')
+      }
       runStarted = true
     } else if (data.testRunEnded) {
       if (typeof config.hooks.afterEnd === 'function') {

@@ -39,7 +39,7 @@
         return retval
       }
       mocha.run = function() {
-        window.callPhantom({ testRunStarted: true })
+        window.callPhantom({ testRunStarted: mocha.suite.suites.length })
         mocha.runner = origRun.apply(mocha, arguments)
         if (mocha.runner.stats && mocha.runner.stats.end) {
           window.callPhantom({ testRunEnded: mocha.runner })

@@ -73,6 +73,11 @@ describe 'mocha-phantomjs-core', ->
     code.should.not.equal 0
     stderr.should.match /mocha.run\(\) was not called within 500ms of the page loading/
 
+  it 'returns a failure code when no tests are loaded', ->
+    { code, stderr } = yield run { test: 'no-tests' }
+    code.should.not.equal 0
+    stderr.should.match /mocha.run\(\) was called with no tests/
+
   it 'returns a failure code when there is a page error', ->
     { code, stderr } = yield run { test: 'error' }
     code.should.equal 1
