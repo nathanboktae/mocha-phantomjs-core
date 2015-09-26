@@ -113,6 +113,7 @@ page.onCallback = function(data) {
   return true
 }
 page.onLoadFinished = function(status) {
+  page.onLoadFinished = null
   if (status !== 'success') {
     fail('Failed to load the page. Check the url: ' + url)
   } else if (!configured) {
