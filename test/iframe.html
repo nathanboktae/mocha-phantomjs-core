@@ -12,7 +12,19 @@
     <script>
       mocha.ui('bdd'); 
 
+      (function() {
+        var iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
+        iframe.src = "http://fail/";
+      })();
+
       describe('<iframe>', function() {
+        it('allow us to add an iframe that never loads', function() {
+          var iframe = document.createElement("iframe");
+          document.body.appendChild(iframe);
+          iframe.src = "http://fail/";
+        });
+
         it('allow us to remove an iframe that is not finished downloading', function() {
           var iframe = document.createElement("iframe");
           iframe.src = "blank.html";
