@@ -22,6 +22,16 @@ npm install mocha-phantomjs-core
 phantomjs mocha-phantomjs-core.js <TESTS> <REPORTER> <CONFIG as JSON>
 ```
 
+Due to resource loading timing issues with external sources, you may need to call `initMochaPhantomJS` before calling any mocha setup functions like `setup()`, `ui()`, etc. `mocha-phantomjs-core` will notify you if you need this, and if so, add a check for it before your mocha setup code:
+
+```
+if (typeof initMochaPhantomJS === 'function') {
+  initMochaPhantomJS()
+}
+```
+
+This can be avoided by removing unnessecary external resources like fonts, CSS, etc. from your tests, or simply having `mocha.js` as the first script loaded.
+
 ### Config
 
 It's best to always refer to [the tests](https://github.com/nathanboktae/mocha-phantomjs-core/blob/master/test/core.tests.coffee) for full usage and examples.

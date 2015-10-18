@@ -24,33 +24,41 @@
     return (!readyState || readyState == 'loaded' || readyState == 'complete' || readyState == 'uninitialized')
   }
 
-  mochaScript.onreadystatechange = mochaScript.onload = function () {
-    if (isFileReady(mochaScript.readyState)) {
-      // Mocha needs a process.stdout.write in order to change the cursor position.
-      Mocha.process = Mocha.process || {}
-      Mocha.process.stdout = Mocha.process.stdout || process.stdout
-      Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
+  function initMochaPhantomJS() {
+    // Mocha needs a process.stdout.write in order to change the cursor position.
+    Mocha.process = Mocha.process || {}
+    Mocha.process.stdout = Mocha.process.stdout || process.stdout
+    Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
 
-      var origRun = mocha.run, origUi = mocha.ui
-      mocha.ui = function() {
-        var retval = origUi.apply(mocha, arguments)
-        window.callPhantom({ configureMocha: true })
-        mocha.reporter = function() {}
-        return retval
-      }
-      mocha.run = function() {
-        window.callPhantom({ testRunStarted: mocha.suite.suites.length })
-        mocha.runner = origRun.apply(mocha, arguments)
-        if (mocha.runner.stats && mocha.runner.stats.end) {
+    var origRun = mocha.run, origUi = mocha.ui
+    mocha.ui = function() {
+      var retval = origUi.apply(mocha, arguments)
+      window.callPhantom({ configureMocha: true })
+      mocha.reporter = function() {}
+      return retval
+    }
+    mocha.run = function() {
+      window.callPhantom({ testRunStarted: mocha.suite.suites.length })
+      mocha.runner = origRun.apply(mocha, arguments)
+      if (mocha.runner.stats && mocha.runner.stats.end) {
+        window.callPhantom({ testRunEnded: mocha.runner })
+      } else {
+        mocha.runner.on('end', function() {
           window.callPhantom({ testRunEnded: mocha.runner })
-        } else {
-          mocha.runner.on('end', function() {
-            window.callPhantom({ testRunEnded: mocha.runner })
-          })
-        }
-        return mocha.runner
+        })
+      }
+      return mocha.runner
+    }
+  }
+
+  if (mochaScript) {
+    mochaScript.onreadystatechange = mochaScript.onload = function () {
+      if (isFileReady(mochaScript.readyState)) {
+        initMochaPhantomJS()
       }
     }
+  } else {
+    window.initMochaPhantomJS = initMochaPhantomJS
   }
 
   // Mocha needs the formating feature of console.log so copy node's format function and

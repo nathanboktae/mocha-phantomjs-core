@@ -7,20 +7,20 @@ describe 'mocha-phantomjs-core', ->
   fs = require 'fs'
   Promise = require 'bluebird'
 
-  fileURL = (file) ->
+  fileURL = (file, query) ->
     fullPath = fs.realpathSync "#{process.cwd()}/test/#{file}.html"
     fullPath = fullPath.replace /\\/g, '\/'
     urlString = fullPath
-    urlString = url.format { protocol: 'file', hostname: '', pathname: fullPath } if process.platform isnt 'win32'
+    urlString = url.format { protocol: 'file', hostname: '', pathname: fullPath, query: query } if process.platform isnt 'win32'
 
   run = (opts) ->
     opts = opts or {}
-    new Promise (resolve, reject) ->          
+    new Promise (resolve, reject) ->
       stdout = ''
       stderr = ''
       spawnArgs = [
         "#{process.cwd()}/mocha-phantomjs-core.js",
-        opts.url or fileURL(opts.test or 'passing'),
+        opts.url or fileURL(opts.test or 'passing', opts.query),
         opts.reporter or 'spec',
         JSON.stringify(opts)
       ]
@@ -115,7 +115,7 @@ describe 'mocha-phantomjs-core', ->
     { stdout } = yield run
       reporter: 'xunit'
       test: 'mixed'
-    
+
     stdout.should.match /<testcase classname="Tests Mixed" name="passes 1" time=".*"\/>/
 
   describe 'exit code', ->
@@ -130,6 +130,18 @@ describe 'mocha-phantomjs-core', ->
     it 'returns a failing code correctly even with async failing tests', ->
       { code } = yield run { test: 'failing-async' }
       code.should.equal 3
+
+  describe 'external sources', ->
+    it 'requires calling initMochaPhantomJS when external sources are in the page', ->
+      { code, stdout, stderr } = yield run { test: 'external-sources' }
+      stderr.should.be.empty
+      stdout.should.contain '3 passing'
+      code.should.equal 0
+
+    it 'should give an informative message when initMochaPhantomJS is required', ->
+      { code, stderr } = yield run { test: 'external-sources', query: { skipinit: true } }
+      stderr.should.contain 'your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions'
+      code.should.equal 1
 
   describe 'screenshot', ->
     it 'takes a screenshot into given file, suffixed with .png', ->
@@ -162,7 +174,7 @@ describe 'mocha-phantomjs-core', ->
         test: 'mixed'
 
       stderr.should.match /Node modules cannot be required/
-      code.should.not.equal 0      
+      code.should.not.equal 0
 
   describe 'hooks', ->
     it 'should fail gracefully if they do not exist', ->
@@ -171,18 +183,18 @@ describe 'mocha-phantomjs-core', ->
 
       code.should.not.equal 0
       stderr.should.contain "Error loading hooks: Cannot find module 'nonexistant-file.js'"
-    
+
     it 'has a hook for before tests are started', ->
       { code, stdout } = yield run
         hooks: process.cwd() + '/test/hooks/before-start.js'
 
       stdout.should.contain 'Before start called correctly!'
       code.should.equal 0
-    
+
     it 'has a hook for after the test run finishes', ->
       { code, stdout } = yield run
         hooks: process.cwd() + '/test/hooks/after-end.js'
-      
+
       stdout.should.contain 'After end called correctly!'
       code.should.equal 0
 
@@ -196,7 +208,7 @@ describe 'mocha-phantomjs-core', ->
       it 'has a custom user agent via settings', ->
         { stdout } = yield run
           test: 'user-agent'
-          settings: 
+          settings:
             userAgent: 'mocha=UserAgent'
 
         stdout.should.match /^mocha=UserAgent/
@@ -217,7 +229,7 @@ describe 'mocha-phantomjs-core', ->
       it 'has the specified dimensions', ->
         { stdout } = yield run
           test: 'viewport'
-          viewportSize: 
+          viewportSize:
             width: 123
             height: 456
 
@@ -247,7 +259,7 @@ describe 'mocha-phantomjs-core', ->
           reporter: 'dot'
           test: 'mixed'
           useColors: true
-        
+
         stdout.should.match /\u001b\[90m\․\u001b\[0m/ # grey
         stdout.should.match /\u001b\[36m\․\u001b\[0m/ # cyan
         stdout.should.match /\u001b\[31m\․\u001b\[0m/ # red

@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>External Sources</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,300,600,700" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script>
+      if (window.initMochaPhantomJS && window.location.search.indexOf('skip') === -1) {
+        initMochaPhantomJS()
+      }
+      mocha.ui('bdd')
+      expect = chai.expect
+    </script>
+    <script src="lib/passing.js"></script>
+    <script>
+      mocha.run()
+    </script>
+  </body>
+</html>
+

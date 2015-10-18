@@ -117,7 +117,11 @@ page.onLoadFinished = function(status) {
   if (status !== 'success') {
     fail('Failed to load the page. Check the url: ' + url)
   } else if (!configured) {
-    fail('mocha was not initialized before the page finished loading. Make sure to include mocha.js as a direct script and call `mocha.ui` or `mocha.setup`.')
+    if (page.evaluate(function() { return window.initMochaPhantomJS })) {
+      fail('Likely due to external resource loading and timing, your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions. See https://github.com/nathanboktae/mocha-phantomjs/issues/213')
+    } else {
+      fail('mocha was not initialized before the page finished loading. Make sure to include mocha.js as a direct script and call `mocha.ui` or `mocha.setup`.')
+    }
   } else if (!runStarted) {
     var timeout = config.timeout || 10000
     setTimeout(function() {
@@ -165,7 +169,7 @@ function configureMocha() {
       return Mocha.reporters.Custom = exports || module.exports;
     },
     wrappedReporter = wrapper.toString().replace("'customreporter'", "(function() {" + (customReporter.toString()) + "})()")
-    
+
     page.evaluate(wrappedReporter)
     if (page.evaluate(function() { return !Mocha.reporters.Custom }) ||
         page.evaluate(setupReporter) !== true) {
@@ -174,7 +178,7 @@ function configureMocha() {
   }
 
   if (typeof config.hooks.beforeStart === 'function') {
-    config.hooks.beforeStart(hookData) 
+    config.hooks.beforeStart(hookData)
   }
   configured = true
 }
