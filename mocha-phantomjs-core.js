@@ -118,7 +118,7 @@ page.onLoadFinished = function(status) {
     fail('Failed to load the page. Check the url: ' + url)
   } else if (!configured) {
     if (page.evaluate(function() { return window.initMochaPhantomJS })) {
-      fail('Likely due to external resource loading and timing, your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions. See https://github.com/nathanboktae/mocha-phantomjs/issues/213')
+      fail('Likely due to external resource loading and timing, your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions. See https://github.com/nathanboktae/mocha-phantomjs-core/issues/12')
     } else {
       fail('mocha was not initialized before the page finished loading. Make sure to include mocha.js as a direct script and call `mocha.ui` or `mocha.setup`.')
     }
