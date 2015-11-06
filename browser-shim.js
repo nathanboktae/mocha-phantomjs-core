@@ -13,53 +13,60 @@
     };
   }
 
-  var scriptTags = document.querySelectorAll('script'),
-      mochaScript = Array.prototype.filter.call(scriptTags, function(s) {
-        var src = s.getAttribute('src')
-        return src && src.match(/mocha\.js$/)
-      })[0]
-
   function isFileReady(readyState) {
     // Check to see if any of the ways a file can be ready are available as properties on the file's element
     return (!readyState || readyState == 'loaded' || readyState == 'complete' || readyState == 'uninitialized')
   }
 
-  function initMochaPhantomJS() {
-    // Mocha needs a process.stdout.write in order to change the cursor position.
-    Mocha.process = Mocha.process || {}
-    Mocha.process.stdout = Mocha.process.stdout || process.stdout
-    Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
+  Object.defineProperty(window, 'initMochaPhantomJS', {
+    value: function () {
+      // Mocha needs a process.stdout.write in order to change the cursor position.
+      Mocha.process = Mocha.process || {}
+      Mocha.process.stdout = Mocha.process.stdout || process.stdout
+      Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
 
-    var origRun = mocha.run, origUi = mocha.ui
-    mocha.ui = function() {
-      var retval = origUi.apply(mocha, arguments)
-      window.callPhantom({ configureMocha: true })
-      mocha.reporter = function() {}
-      return retval
-    }
-    mocha.run = function() {
-      window.callPhantom({ testRunStarted: mocha.suite.suites.length })
-      mocha.runner = origRun.apply(mocha, arguments)
-      if (mocha.runner.stats && mocha.runner.stats.end) {
-        window.callPhantom({ testRunEnded: mocha.runner })
-      } else {
-        mocha.runner.on('end', function() {
+      var origRun = mocha.run, origUi = mocha.ui
+      mocha.ui = function() {
+        var retval = origUi.apply(mocha, arguments)
+        window.callPhantom({ configureMocha: true })
+        mocha.reporter = function() {}
+        return retval
+      }
+      mocha.run = function() {
+        window.callPhantom({ testRunStarted: mocha.suite.suites.length })
+        mocha.runner = origRun.apply(mocha, arguments)
+        if (mocha.runner.stats && mocha.runner.stats.end) {
           window.callPhantom({ testRunEnded: mocha.runner })
-        })
+        } else {
+          mocha.runner.on('end', function() {
+            window.callPhantom({ testRunEnded: mocha.runner })
+          })
+        }
+        return mocha.runner
       }
-      return mocha.runner
-    }
-  }
 
-  if (mochaScript) {
-    mochaScript.onreadystatechange = mochaScript.onload = function () {
-      if (isFileReady(mochaScript.readyState)) {
-        initMochaPhantomJS()
+      delete window.initMochaPhantomJS
+    },
+    configurable: true
+  })
+
+  Object.defineProperty(window, 'checkForMocha', {
+    value: function() {
+      var scriptTags = document.querySelectorAll('script'),
+          mochaScript = Array.prototype.filter.call(scriptTags, function(s) {
+            var src = s.getAttribute('src')
+            return src && src.match(/mocha\.js$/)
+          })[0]
+
+      if (mochaScript) {
+        mochaScript.onreadystatechange = mochaScript.onload = function () {
+          if (isFileReady(mochaScript.readyState)) {
+            initMochaPhantomJS()
+          }
+        }
       }
     }
-  } else {
-    window.initMochaPhantomJS = initMochaPhantomJS
-  }
+  })
 
   // Mocha needs the formating feature of console.log so copy node's format function and
   // monkey-patch it into place. This code is copied from node's, links copyright applies.

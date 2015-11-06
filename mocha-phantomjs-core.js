@@ -81,9 +81,14 @@ page.onError = function(msg, traces) {
 
 // Load the test page
 page.open(url)
+page.onInitialized = function() {
+  page.injectJs('browser-shim.js')
+}
 page.onResourceReceived = function(resource) {
   if (resource.url.match(/mocha\.js$/)) {
-    page.injectJs('browser-shim.js')
+    page.evaluate(function() {
+      checkForMocha()
+    })
   }
 }
 page.onCallback = function(data) {
@@ -116,18 +121,20 @@ page.onLoadFinished = function(status) {
   page.onLoadFinished = null
   if (status !== 'success') {
     fail('Failed to load the page. Check the url: ' + url)
+    return
   }
 
   var timeout = config.timeout || 10000
   setTimeout(function() {
     if (!configured) {
-      if (page.evaluate(function() { return window.initMochaPhantomJS })) {
+      if (page.evaluate(function() { return !window.mocha })) {
+        fail('mocha was not found in the page within ' + timeout + 'ms of the page loading.')
+      } else if (page.evaluate(function() { return window.initMochaPhantomJS })) {
         fail('Likely due to external resource loading and timing, your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions. See https://github.com/nathanboktae/mocha-phantomjs-core/issues/12')
       } else {
         fail('mocha was not initialized within ' + timeout + 'ms of the page loading. Make sure to call `mocha.ui` or `mocha.setup`.')
       }
-    }
-    if (!runStarted) {
+    } else if (!runStarted) {
       fail('mocha.run() was not called within ' + timeout + 'ms of the page loading.')
     }
   }, timeout)
