@@ -29,7 +29,7 @@
   },
   "main": "./mocha-phantomjs-core.js",
   "scripts": {
-    "test": "mocha --harmony --compilers coffee:coffee-script/register test/core.tests.coffee -t 5000"
+    "test": "mocha --compilers coffee:coffee-script/register test/core.tests.coffee -t 5000"
   },
   "devDependencies": {
     "bluebird": "^2.9.24",

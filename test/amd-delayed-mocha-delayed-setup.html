@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>Loading mocha, chai, and tests with an AMD loader</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+  </head>
+  <body>
+    <script>console.log('initMochaPhantomJS available? ' + (window.initMochaPhantomJS ? 'yes' : 'no'))</script>
+    <div id="mocha"></div>
+    <script data-main="lib/requirejs-app-test-libs-and-tests" src="../node_modules/requirejs/require.js"></script>
+  </body>
+</html>
+

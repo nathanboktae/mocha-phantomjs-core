@@ -96,12 +96,6 @@ describe 'mocha-phantomjs-core', ->
     stdout.should.not.match /Failed to load the page\./m
     code.should.equal 0
 
-  it 'allows delayed initialization when using AMD modules', ->
-    { code, stdout, stderr } = yield run { test: 'amd' }
-    stderr.should.not.match /Failed to load the page\./m
-    stdout.should.match /3 passing/m
-    code.should.equal 0
-
   it 'returns the mocha runner from run() and allows modification of it', ->
     { code, stdout } = yield run { test: 'mocha-runner' }
     stdout.should.not.match /Failed via an Event/m
@@ -130,6 +124,29 @@ describe 'mocha-phantomjs-core', ->
     it 'returns a failing code correctly even with async failing tests', ->
       { code } = yield run { test: 'failing-async' }
       code.should.equal 3
+
+  describe 'delayed initialization', ->
+    it 'allows a delayed mocha.run as when loading tests as AMD modules', ->
+      { code, stdout, stderr } = yield run { test: 'amd-inline-mocha-inline-setup' }
+      stderr.should.not.match /Failed to load the page\./m
+      stdout.should.match /3 passing/m
+      code.should.equal 0
+
+    it 'allows a delayed mocha.setup as when loading tests and test libraries as AMD modules', ->
+      { code, stdout, stderr } = yield run { test: 'amd-inline-mocha-delayed-setup' }
+      stderr.should.not.match /mocha was not initialized/m
+      stdout.should.match /1 passing/m
+      code.should.equal 2
+
+    it 'allows a delayed mocha.setup and mocha.run as when async loading everything', ->
+      { code, stdout, stderr } = yield run { test: 'amd-delayed-mocha-delayed-setup' }
+      stderr.should.not.match /mocha was not initialized/m
+      stdout.should.match /3 passing/m
+      code.should.equal 0
+
+    it 'should always expose initMochaPhantomJS if needed to be explicitly setup', ->
+      { stdout } = yield run { test: 'amd-delayed-mocha-delayed-setup' }
+      stdout.should.contain 'initMochaPhantomJS available? yes'
 
   describe 'external sources', ->
     it 'requires calling initMochaPhantomJS when external sources are in the page', ->
