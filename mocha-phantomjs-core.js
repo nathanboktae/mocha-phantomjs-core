@@ -147,6 +147,9 @@ function configureMocha() {
 
     mocha.useColors(config.useColors)
     mocha.bail(config.bail)
+    if (config.timeout) {
+      mocha.timeout(config.timeout)
+    }
     if (config.grep) {
       mocha.grep(config.grep)
     }

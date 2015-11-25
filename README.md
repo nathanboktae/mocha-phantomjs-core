@@ -58,7 +58,7 @@ Boolean. Suppress the resource failure output that `mocha-phantomjs-core` will o
 
 #### `timeout`
 
-Time in milliseconds after the page loads that `mocha.run` needs to be called. Defaults to 10 seconds.
+Time in milliseconds after the page loads that `mocha.run` needs to be called. Also sets mocha's root suite timeout. Defaults to 10 seconds.
 
 #### `viewportSize`
 
