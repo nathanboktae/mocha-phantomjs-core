@@ -296,6 +296,14 @@ describe 'mocha-phantomjs-core', ->
 
         stdout.should.contain '1 failing'
 
+    describe 'timeout', ->
+      it 'should set the root suite timeout', ->
+        { stdout } = yield run
+          test: 'slow'
+          timeout: 300
+
+        stdout.should.contain '3 failing'
+
     describe 'file', ->
       it 'pipes reporter output to a file', ->
         { stdout } = yield run
