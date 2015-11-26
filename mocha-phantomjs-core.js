@@ -124,20 +124,20 @@ page.onLoadFinished = function(status) {
     return
   }
 
-  var timeout = config.timeout || 10000
+  var loadTimeout = config.loadTimeout || 10000
   setTimeout(function() {
     if (!configured) {
       if (page.evaluate(function() { return !window.mocha })) {
-        fail('mocha was not found in the page within ' + timeout + 'ms of the page loading.')
+        fail('mocha was not found in the page within ' + loadTimeout + 'ms of the page loading.')
       } else if (page.evaluate(function() { return window.initMochaPhantomJS })) {
         fail('Likely due to external resource loading and timing, your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions. See https://github.com/nathanboktae/mocha-phantomjs-core/issues/12')
       } else {
-        fail('mocha was not initialized within ' + timeout + 'ms of the page loading. Make sure to call `mocha.ui` or `mocha.setup`.')
+        fail('mocha was not initialized within ' + loadTimeout + 'ms of the page loading. Make sure to call `mocha.ui` or `mocha.setup`.')
       }
     } else if (!runStarted) {
-      fail('mocha.run() was not called within ' + timeout + 'ms of the page loading.')
+      fail('mocha.run() was not called within ' + loadTimeout + 'ms of the page loading.')
     }
-  }, timeout)
+  }, loadTimeout)
 }
 
 function configureMocha() {

@@ -59,17 +59,17 @@ describe 'mocha-phantomjs-core', ->
     code.should.equal 0
 
   it 'returns a failure code when mocha can not be found on the page', ->
-    { code, stderr } = yield run { test: 'blank', timeout: 300 }
+    { code, stderr } = yield run { test: 'blank', loadTimeout: 300 }
     code.should.equal 1
     stderr.should.contain 'mocha was not found in the page within 300ms of the page loading'
 
   it 'returns a failure code when mocha fails to start for any reason', ->
-    { code, stderr } = yield run { test: 'bad', timeout: 300 }
+    { code, stderr } = yield run { test: 'bad', loadTimeout: 300 }
     code.should.equal 1
     stderr.should.contain 'mocha was not initialized within 300ms of the page loading'
 
-  it 'returns a failure code when mocha is not started within the timeout after the page loads', ->
-    { code, stderr } = yield run { test: 'no-mocha-run', timeout: 500 }
+  it 'returns a failure code when mocha is not started within the loadTimeout after the page loads', ->
+    { code, stderr } = yield run { test: 'no-mocha-run', loadTimeout: 500 }
     code.should.not.equal 0
     stderr.should.match /mocha.run\(\) was not called within 500ms of the page loading/
 
@@ -156,7 +156,7 @@ describe 'mocha-phantomjs-core', ->
       code.should.equal 0
 
     it 'should give an informative message when initMochaPhantomJS is required', ->
-      { code, stderr } = yield run { test: 'external-sources', query: { skipinit: true }, timeout: 300 }
+      { code, stderr } = yield run { test: 'external-sources', query: { skipinit: true }, loadTimeout: 300 }
       stderr.should.contain 'your tests require calling `window.initMochaPhantomJS()` before calling any mocha setup functions'
       code.should.equal 1
 
