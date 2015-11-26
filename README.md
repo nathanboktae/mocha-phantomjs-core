@@ -56,9 +56,13 @@ Boolean. Stop the test run at the first failure if true. Defaults to false.
 
 Boolean. Suppress the resource failure output that `mocha-phantomjs-core` will output by default.
 
+#### `loadTimeout`
+
+Time in milliseconds after the page loads that `mocha.run` needs to be called. Defaults to 10 seconds. 
+
 #### `timeout`
 
-Time in milliseconds after the page loads that `mocha.run` needs to be called. Defaults to 10 seconds.
+Sets mocha's root suite timeout. Defers to mocha's default if omitted. 
 
 #### `viewportSize`
 
