@@ -18,33 +18,40 @@
     return (!readyState || readyState == 'loaded' || readyState == 'complete' || readyState == 'uninitialized')
   }
 
+  function shimMochaProcess(M) {
+    // Mocha needs a process.stdout.write in order to change the cursor position.
+    M.process = M.process || {}
+    M.process.stdout = M.process.stdout || process.stdout
+    M.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
+    window.callPhantom({ getColWith: true })
+  }
+
+  function shimMochaInstance(m) {
+    var origRun = m.run, origUi = m.ui
+    m.ui = function() {
+      var retval = origUi.apply(mocha, arguments)
+      window.callPhantom({ configureMocha: true })
+      m.reporter = function() {}
+      return retval
+    }
+    m.run = function() {
+      window.callPhantom({ testRunStarted: m.suite.suites.length })
+      m.runner = origRun.apply(mocha, arguments)
+      if (m.runner.stats && m.runner.stats.end) {
+        window.callPhantom({ testRunEnded: m.runner })
+      } else {
+        m.runner.on('end', function() {
+          window.callPhantom({ testRunEnded: m.runner })
+        })
+      }
+      return m.runner
+    }
+  }
+
   Object.defineProperty(window, 'initMochaPhantomJS', {
     value: function () {
-      // Mocha needs a process.stdout.write in order to change the cursor position.
-      Mocha.process = Mocha.process || {}
-      Mocha.process.stdout = Mocha.process.stdout || process.stdout
-      Mocha.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
-
-      var origRun = mocha.run, origUi = mocha.ui
-      mocha.ui = function() {
-        var retval = origUi.apply(mocha, arguments)
-        window.callPhantom({ configureMocha: true })
-        mocha.reporter = function() {}
-        return retval
-      }
-      mocha.run = function() {
-        window.callPhantom({ testRunStarted: mocha.suite.suites.length })
-        mocha.runner = origRun.apply(mocha, arguments)
-        if (mocha.runner.stats && mocha.runner.stats.end) {
-          window.callPhantom({ testRunEnded: mocha.runner })
-        } else {
-          mocha.runner.on('end', function() {
-            window.callPhantom({ testRunEnded: mocha.runner })
-          })
-        }
-        return mocha.runner
-      }
-
+      shimMochaProcess(Mocha)
+      shimMochaInstance(mocha)
       delete window.initMochaPhantomJS
     },
     configurable: true
@@ -67,6 +74,30 @@
       }
     }
   })
+
+  if ('mozInnerScreenX' in window) {
+    // in slimerjs, we can stub out a setter to shim Mocha. phantomjs 2 fails
+    // to allow the property to be reconfigured...
+    Object.defineProperty(window, 'mocha', {
+      get: function() { return undefined },
+      set: function(m) {
+        shimMochaInstance(m)
+        delete window.mocha
+        window.mocha = m
+      },
+      configurable: true
+    })
+
+    Object.defineProperty(window, 'Mocha', {
+      get: function() { return undefined },
+      set: function(m) {
+        delete window.Mocha
+        window.Mocha = m
+        shimMochaProcess(m)
+      },
+      configurable: true
+    })
+  }
 
   // Mocha needs the formating feature of console.log so copy node's format function and
   // monkey-patch it into place. This code is copied from node's, links copyright applies.

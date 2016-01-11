@@ -2,6 +2,7 @@ var
   system = require('system'),
   webpage = require('webpage'),
   fs = require('fs'),
+  stderr = system.stderr || system.stdout,
   url = system.args[1],
   reporter = system.args[2] || 'spec',
   config = JSON.parse(system.args[3] || '{}'),
@@ -15,7 +16,7 @@ if (!url) {
 }
 
 if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version.minor < 9)) {
-  system.stderr.writeLine('mocha-phantomjs requires PhantomJS > 1.9.1')
+  stderr.writeLine('mocha-phantomjs requires PhantomJS > 1.9.1')
   phantom.exit(-2)
 }
 
@@ -30,7 +31,7 @@ var
       output.close()
     }
     if (msg) {
-      system.stderr.writeLine(msg)
+      stderr.writeLine(msg)
     }
     return phantom.exit(errno || 1)
   }
@@ -45,7 +46,7 @@ if (config.hooks) {
     config.hooks = require(config.hooks)
   }
   catch (e) {
-    system.stderr.writeLine('Error loading hooks: ' + e.message)
+    stderr.writeLine('Error loading hooks: ' + e.message)
     phantom.exit(-3)
   }
 } else {
@@ -67,7 +68,7 @@ page.onConsoleMessage = function(msg) {
 }
 page.onResourceError = function(resErr) {
   if (!config.ignoreResourceErrors) {
-    return system.stderr.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
+    return stderr.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
   }
 }
 page.onError = function(msg, traces) {
@@ -97,6 +98,10 @@ page.onCallback = function(data) {
       output.write(data.stdout)
     } else if (typeof data.screenshot === 'string') {
       page.render(data.screenshot + '.png')
+    } else if (data.configureColWidth) {
+      page.evaluate(function(columns) {
+        Mocha.reporters.Base.window.width = columns
+      }, parseInt(system.env.COLUMNS || 75) * .75 | 0)
     } else if (data.configureMocha) {
       configureMocha()
     } else if ('testRunStarted' in data) {
@@ -112,7 +117,9 @@ page.onCallback = function(data) {
       if (config.file) {
         output.close()
       }
-      phantom.exit(data.testRunEnded.failures)
+      setTimeout(function() {
+        phantom.exit(data.testRunEnded.failures)
+      }, 100)
     }
   }
   return true
@@ -141,8 +148,7 @@ page.onLoadFinished = function(status) {
 }
 
 function configureMocha() {
-  page.evaluate(function(config, env, columns) {
-    Mocha.reporters.Base.window.width = columns
+  page.evaluate(function(config, env) {
     mocha.env = env
 
     mocha.useColors(config.useColors)
@@ -156,7 +162,7 @@ function configureMocha() {
     if (config.invert) {
       mocha.invert()
     }
-  }, config, system.env, parseInt(system.env.COLUMNS || 75) * .75 | 0)
+  }, config, system.env)
 
   // setup a the reporter
   if (page.evaluate(setupReporter, reporter) !== true) {
