@@ -103,6 +103,19 @@ If you want to generate a screenshot for each test failure you could add the fol
   })
 ```
 
+## Send event
+
+`mocha-phantomjs-core` supports [sending events](http://phantomjs.org/api/webpage/method/send-event.html)
+from your test code. For example, `click` event:
+
+```javascript
+if (window.callPhantom) {
+  window.callPhantom({
+    sendEvent: ['click', 10, 10] // array of arguments
+  });
+}
+```
+
 ## Environment variables
 
 `mocha-phantomjs-core` will expose environment variables at `mocha.env`
