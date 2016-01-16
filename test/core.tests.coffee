@@ -168,6 +168,11 @@ describe 'mocha-phantomjs-core', ->
       fs.existsSync(fileName).should.be.true
       fs.unlinkSync(fileName)
 
+  describe 'send event', ->
+    it 'call sendEvent function', ->
+      { code } = yield run { test: 'send-event' }
+      code.should.equal 0
+
   describe 'third party reporters', ->
     it 'loads and wraps node-style reporters to run in the browser', ->
       { stdout } = yield run
