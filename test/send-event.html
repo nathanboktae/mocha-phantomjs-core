@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>Send Event</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+  </head>
+  <body>
+    <button style="position:absolute;top:0;left:0;"
+            onclick="document.getElementById('target').innerHTML='button was clicked';">Update target</button>
+    <span id="target"></span>
+    <div id="mocha"></div>
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script>
+      mocha.ui('bdd'); 
+      mocha.reporter('html');
+      expect = chai.expect;
+    </script>
+    <script src="lib/send-event.js"></script>
+    <script>
+      mocha.run();
+    </script>
+  </body>
+</html>
+
