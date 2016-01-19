@@ -5,14 +5,14 @@ addons:
   firefox: "39.0"
 
 env:
-  - PHANTOMJS1=1.9.7
-  - PHANTOMJS2=2.0.0
-  - SLIMERJS=0.9.0 SLIMERJSLAUNCHER=$(which firefox) DISPLAY=:99.0 PATH=$TRAVIS_BUILD_DIR/slimerjs:$PATH
+  - SLIMERJS=0.9.6 SLIMERJSLAUNCHER=$(which firefox) DISPLAY=:99.0 PATH=$TRAVIS_BUILD_DIR/slimerjs:$PATH
 
 before_script:
   - "if [ -n \"$PHANTOMJS1\" ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-1.9.7-linux-x86_64.tar.bz2 -O - | tar -xj; fi"
   - "if [ -n \"$PHANTOMJS1\" ]; then mv phantomjs-1.9.7-linux-x86_64/bin/phantomjs .; fi"
   - "if [ -n \"$PHANTOMJS2\" ]; then wget https://s3.amazonaws.com/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2 -O - | tar -xj; fi"
-  - "if [ -n \"$SLIMERJS\" ]; then wget http://download.slimerjs.org/v0.9/0.9.0/slimerjs-0.9.0.zip; unzip slimerjs-0.9.0.zip; mv slimerjs-0.9.0 ./phantomjs; chmod +x ./phantomjs; fi"
+  - "if [ -n \"$SLIMERJS\" ]; then sh -e /etc/init.d/xvfb start; fi"
+  - "if [ -n \"$SLIMERJS\" ]; then wget http://download.slimerjs.org/v0.9/0.9.6/slimerjs-0.9.6.zip; unzip slimerjs-0.9.6.zip; mv slimerjs-0.9.6 ./slimerjs; fi"
+  - "if [ -n \"$SLIMERJS\" ]; then slimerjs mocha-phantomjs-core.js ./tests/passing.html; fi"
 
 script: npm test

@@ -25,7 +25,7 @@ describe 'mocha-phantomjs-core', ->
         JSON.stringify(opts)
       ]
       spawnArgs = [spawnArgs[0]] if opts.noargs
-      mochaPhantomJS = spawn "#{process.cwd()}/phantomjs", spawnArgs
+      mochaPhantomJS = spawn (if process.env.SLIMERJS then 'slimerjs' else "#{process.cwd()}/phantomjs"), spawnArgs
       mochaPhantomJS.stdout.on 'data', (data) -> stdout = stdout.concat data.toString()
       mochaPhantomJS.stderr.on 'data', (data) -> stderr = stderr.concat data.toString()
       mochaPhantomJS.on 'exit', (code) ->
