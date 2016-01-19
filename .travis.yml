@@ -2,7 +2,7 @@ language: node_js
 node_js:
   - 4
 addons:
-  firefox: "39.0"
+  firefox: "42.0"
 
 env:
   - SLIMERJS=0.9.6 SLIMERJSLAUNCHER=$(which firefox) DISPLAY=:99.0
@@ -12,6 +12,6 @@ before_script:
   - "if [ -n \"$PHANTOMJS1\" ]; then mv phantomjs-1.9.7-linux-x86_64/bin/phantomjs .; fi"
   - "if [ -n \"$PHANTOMJS2\" ]; then wget https://s3.amazonaws.com/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2 -O - | tar -xj; fi"
   - "if [ -n \"$SLIMERJS\" ]; then sh -e /etc/init.d/xvfb start; fi"
-  - "if [ -n \"$SLIMERJS\" ]; then wget http://download.slimerjs.org/v0.9/0.9.6/slimerjs-0.9.6.zip; unzip slimerjs-0.9.6.zip; mv slimerjs-0.9.6 ./slimerjs; fi"
+  - "if [ -n \"$SLIMERJS\" ]; then git clone --depth=1 https://github.com/laurentj/slimerjs.git tmp; mv ./tmp/src ./slimerjs; fi"
 
 script: npm test

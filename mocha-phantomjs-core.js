@@ -8,11 +8,12 @@ var
   config = JSON.parse(system.args[3] || '{}'),
   configured = false,
   runStarted = false,
+  isSlimer = 'MozApplicationEvent' in window,
   hookData
 
 if (!url) {
-  system.stdout.writeLine("Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
-  phantom.exit(-1)
+  system.stdout.writeLine("Usage: " + (isSlimer ? 'slimerjs' : 'phantomjs') + " mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
+  phantom.exit(255)
 }
 
 if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version.minor < 9)) {
@@ -33,6 +34,7 @@ var
     if (msg) {
       stderr.writeLine(msg)
     }
+    console.log('errno is ' + errno)
     return phantom.exit(errno || 1)
   }
 
@@ -47,7 +49,7 @@ if (config.hooks) {
   }
   catch (e) {
     stderr.writeLine('Error loading hooks: ' + e.message)
-    phantom.exit(-3)
+    phantom.exit(253)
   }
 } else {
   config.hooks = {}
@@ -127,7 +129,7 @@ page.onCallback = function(data) {
 page.onLoadFinished = function(status) {
   page.onLoadFinished = null
   if (status !== 'success') {
-    fail('Failed to load the page. Check the url: ' + url)
+    fail('Failed to load the page. wazzup? Check the url: ' + url)
     return
   }
 

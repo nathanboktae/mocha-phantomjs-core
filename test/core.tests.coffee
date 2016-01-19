@@ -33,10 +33,14 @@ describe 'mocha-phantomjs-core', ->
       mochaPhantomJS.on 'error', (err) -> reject err
 
 
-  it 'returns a failure code and shows usage when no args are given', ->
+  it 'returns a failure code and shows usage when no args are given', !process.env.SLIMERJS and ->
     { code, stdout } = yield run { noargs: true }
-    code.should.equal 255
+    code.should.equal(255)
     stdout.should.contain 'Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]'
+
+  it 'shows usage when no args are given', process.env.SLIMERJS and ->
+    { code, stdout } = yield run { noargs: true }
+    stdout.should.contain 'Usage: slimerjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]'
 
   it 'returns a failure code and notifies of bad url when given one', ->
     @timeout = 4000
