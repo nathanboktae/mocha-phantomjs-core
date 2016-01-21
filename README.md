@@ -1,5 +1,7 @@
 # Run Mocha tests in PhantomJS
 
+[![Join the chat at https://gitter.im/nathanboktae/mocha-phantomjs-core](https://badges.gitter.im/nathanboktae/mocha-phantomjs-core.svg)](https://gitter.im/nathanboktae/mocha-phantomjs-core?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
 
 So now that you got your tests [Mocha](http://mochajs.org/) running on a simple flat HTML file, now how do you run them in your CI environment? [Karma](http://karma-runner.github.io/)? what is this `karma.conf.js` file I have to write? and some background runner task? how do I grep over just a few tests? wait I need a to also install a driver for phantomjs too? bleck.
