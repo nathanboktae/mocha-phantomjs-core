@@ -5,11 +5,20 @@ var
   stderr = system.stderr || system.stdout,
   url = system.args[1],
   reporter = system.args[2] || 'spec',
-  config = JSON.parse(system.args[3] || '{}'),
   configured = false,
   runStarted = false,
   isSlimer = 'MozApplicationEvent' in window,
+  config = {},
   hookData
+
+try {
+  config = JSON.parse(system.args[3] || '{}')
+} catch (e) {
+  console.log(e)
+  console.log('Bad JSON options')
+  phantom.exit(255)
+}
+
 
 if (!url) {
   system.stdout.writeLine("Usage: " + (isSlimer ? 'slimerjs' : 'phantomjs') + " mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
@@ -34,7 +43,6 @@ var
     if (msg) {
       stderr.writeLine(msg)
     }
-    console.log('errno is ' + errno)
     return phantom.exit(errno || 1)
   }
 
@@ -129,7 +137,7 @@ page.onCallback = function(data) {
 page.onLoadFinished = function(status) {
   page.onLoadFinished = null
   if (status !== 'success') {
-    fail('Failed to load the page. wazzup? Check the url: ' + url)
+    fail('Failed to load the page. Check the url: ' + url)
     return
   }
 

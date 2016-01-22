@@ -48,15 +48,6 @@
     }
   }
 
-  Object.defineProperty(window, 'initMochaPhantomJS', {
-    value: function () {
-      shimMochaProcess(Mocha)
-      shimMochaInstance(mocha)
-      delete window.initMochaPhantomJS
-    },
-    configurable: true
-  })
-
   Object.defineProperty(window, 'checkForMocha', {
     value: function() {
       var scriptTags = document.querySelectorAll('script'),
@@ -94,6 +85,15 @@
         delete window.Mocha
         window.Mocha = m
         shimMochaProcess(m)
+      },
+      configurable: true
+    })
+  } else {
+    Object.defineProperty(window, 'initMochaPhantomJS', {
+      value: function () {
+        shimMochaProcess(Mocha)
+        shimMochaInstance(mocha)
+        delete window.initMochaPhantomJS
       },
       configurable: true
     })
