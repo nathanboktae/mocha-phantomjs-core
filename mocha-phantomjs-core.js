@@ -177,8 +177,13 @@ function configureMocha() {
   // setup a the reporter
   if (page.evaluate(setupReporter, reporter) !== true) {
     // we failed to set the reporter - likely a 3rd party reporter than needs to be wrapped
-    var customReporter = fs.read(reporter),
-    wrapper = function() {
+    try {
+      var customReporter = fs.read(reporter)
+    } catch(e) {
+      fail('Unable to open file \'' + reporter + '\'')
+    }
+
+    var wrapper = function() {
       var exports, module, process, require;
       require = function(what) {
         what = what.replace(/[^a-zA-Z0-9]/g, '')

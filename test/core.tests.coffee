@@ -238,7 +238,8 @@ describe 'mocha-phantomjs-core', ->
 
     describe 'cookies', ->
       # https://github.com/nathanboktae/mocha-phantomjs-core/issues/4
-      it 'has passed cookies', !process.env.PHANTOMJS2 and ->
+      # https://bugzilla.mozilla.org/show_bug.cgi?id=536650
+      it 'has passed cookies', process.env.PHANTOMJS1 and ->
         { stdout } = yield run
           test: 'cookie'
           cookies: [
