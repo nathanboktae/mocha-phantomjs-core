@@ -94,6 +94,12 @@ page.onError = function(msg, traces) {
 page.open(url)
 page.onInitialized = function() {
   page.injectJs('browser-shim.js')
+
+  if (isSlimer && config.settings && config.settings.userAgent) {
+    page.evaluate(function(ua) {
+      navigator.__defineGetter__('userAgent', function() { return ua }
+    }, config.settings.userAgent)
+  }
 }
 page.onResourceReceived = function(resource) {
   if (resource.url.match(/mocha\.js$/)) {

@@ -327,7 +327,8 @@ describe 'mocha-phantomjs-core', ->
         fs.unlinkSync 'reporteroutput.json'
 
     describe 'ignore resource errors', ->
-      it 'by default shows resource errors', ->
+      # https://github.com/laurentj/slimerjs/issues/424
+      it 'by default shows resource errors', !slimerjs and ->
         { code, stderr } = yield run { test: 'resource-errors' }
         stderr.should.contain('Error loading resource').and.contain('nonexistant-file.css')
         code.should.equal 0
@@ -338,7 +339,7 @@ describe 'mocha-phantomjs-core', ->
         stderr.should.not.contain('nonexistant-file.css')
 
   # https://github.com/laurentj/slimerjs/issues/421
-  !slimerjs and describe 'env', ->
+  describe 'env', !slimerjs and ->
     it 'has passed environment variables', ->
       process.env.FOO = 'yowzer'
       { stdout } = yield run { test: 'env' }
