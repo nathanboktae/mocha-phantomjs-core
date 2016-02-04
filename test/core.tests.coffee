@@ -338,9 +338,9 @@ describe 'mocha-phantomjs-core', ->
         stderr.should.not.contain('Error loading resource')
         stderr.should.not.contain('nonexistant-file.css')
 
-  # https://github.com/laurentj/slimerjs/issues/421
-  describe 'env', !slimerjs and ->
-    it 'has passed environment variables', ->
+  describe 'env', ->
+    # https://github.com/laurentj/slimerjs/issues/421
+    it 'has passed environment variables', !slimerjs and ->
       process.env.FOO = 'yowzer'
       { stdout } = yield run { test: 'env' }
       stdout.should.match /^yowzer/

@@ -97,7 +97,7 @@ page.onInitialized = function() {
 
   if (isSlimer && config.settings && config.settings.userAgent) {
     page.evaluate(function(ua) {
-      navigator.__defineGetter__('userAgent', function() { return ua }
+      navigator.__defineGetter__('userAgent', function() { return ua })
     }, config.settings.userAgent)
   }
 }
