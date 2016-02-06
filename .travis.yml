@@ -5,10 +5,13 @@ node_js:
 env:
   - PHANTOMJS1=1.9.7
   - PHANTOMJS2=2.0.0
+  - PHANTOMJS2=2.1.1 PHANTOMJS21=1
 
 before_script:
   - "if [ -n \"$PHANTOMJS1\" ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-1.9.7-linux-x86_64.tar.bz2 -O - | tar -xj; fi"
   - "if [ -n \"$PHANTOMJS1\" ]; then mv phantomjs-1.9.7-linux-x86_64/bin/phantomjs .; fi"
   - "if [ -n \"$PHANTOMJS2\" ]; then wget https://s3.amazonaws.com/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2 -O - | tar -xj; fi"
+  - "if [ -n \"$PHANTOMJS21\" ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-$PHANTOMJS2-linux-x86_64.tar.bz2 -O - | tar -xj; fi"
+  - "if [ -n \"$PHANTOMJS21\" ]; then mv phantomjs-$PHANTOMJS2-linux-x86_64/bin/phantomjs .; fi"
 
 script: npm test
