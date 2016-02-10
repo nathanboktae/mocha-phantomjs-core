@@ -6,6 +6,7 @@ describe 'mocha-phantomjs-core', ->
   url = require 'url'
   fs = require 'fs'
   Promise = require 'bluebird'
+  slimerjs = !!process.env.SLIMERJS
 
   fileURL = (file, query) ->
     fullPath = fs.realpathSync "#{process.cwd()}/test/#{file}.html"
@@ -25,18 +26,22 @@ describe 'mocha-phantomjs-core', ->
         JSON.stringify(opts)
       ]
       spawnArgs = [spawnArgs[0]] if opts.noargs
-      mochaPhantomJS = spawn "#{process.cwd()}/phantomjs", spawnArgs
+      mochaPhantomJS = spawn "#{process.cwd()}/#{(if slimerjs then 'slimerjs/slimerjs' else 'phantomjs')}", spawnArgs
       mochaPhantomJS.stdout.on 'data', (data) -> stdout = stdout.concat data.toString()
       mochaPhantomJS.stderr.on 'data', (data) -> stderr = stderr.concat data.toString()
       mochaPhantomJS.on 'exit', (code) ->
-        resolve { code, stdout, stderr }
+        resolve { code, stdout, stderr: if slimerjs then stdout else stderr }
       mochaPhantomJS.on 'error', (err) -> reject err
 
 
-  it 'returns a failure code and shows usage when no args are given', ->
+  !slimerjs and it 'returns a failure code and shows usage when no args are given', ->
     { code, stdout } = yield run { noargs: true }
-    code.should.equal 255
+    code.should.equal(255)
     stdout.should.contain 'Usage: phantomjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]'
+
+  slimerjs and it 'shows usage when no args are given', ->
+    { code, stdout } = yield run { noargs: true }
+    stdout.should.contain 'Usage: slimerjs mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]'
 
   it 'returns a failure code and notifies of bad url when given one', ->
     @timeout = 4000
@@ -144,11 +149,11 @@ describe 'mocha-phantomjs-core', ->
       stdout.should.match /3 passing/m
       code.should.equal 0
 
-    it 'should always expose initMochaPhantomJS if needed to be explicitly setup', ->
+    !slimerjs and it 'should always expose initMochaPhantomJS if needed to be explicitly setup', ->
       { stdout } = yield run { test: 'amd-delayed-mocha-delayed-setup' }
       stdout.should.contain 'initMochaPhantomJS available? yes'
 
-  describe 'external sources', ->
+  !slimerjs and describe 'external sources', ->
     it 'requires calling initMochaPhantomJS when external sources are in the page', ->
       { code, stdout, stderr } = yield run { test: 'external-sources' }
       stderr.should.be.empty
@@ -204,7 +209,8 @@ describe 'mocha-phantomjs-core', ->
         hooks: 'nonexistant-file.js'
 
       code.should.not.equal 0
-      stderr.should.contain "Error loading hooks: Cannot find module 'nonexistant-file.js'"
+      stderr.should.contain "Error loading hooks"
+      stderr.should.contain "nonexistant-file.js"
 
     it 'has a hook for before tests are started', ->
       { code, stdout } = yield run
@@ -225,7 +231,7 @@ describe 'mocha-phantomjs-core', ->
     describe 'user-agent', ->
       it 'has the default user agent', ->
         { stdout } = yield run { test: 'user-agent' }
-        stdout.should.match /PhantomJS\//
+        stdout.should.match(if slimerjs then /SlimerJS\// else /PhantomJS\//)
 
       it 'has a custom user agent via settings', ->
         { stdout } = yield run
@@ -237,7 +243,8 @@ describe 'mocha-phantomjs-core', ->
 
     describe 'cookies', ->
       # https://github.com/nathanboktae/mocha-phantomjs-core/issues/4
-      it 'has passed cookies', !process.env.PHANTOMJS2 and ->
+      # https://bugzilla.mozilla.org/show_bug.cgi?id=536650
+      it 'has passed cookies', process.env.PHANTOMJS1 and ->
         { stdout } = yield run
           test: 'cookie'
           cookies: [
@@ -325,17 +332,20 @@ describe 'mocha-phantomjs-core', ->
         fs.unlinkSync 'reporteroutput.json'
 
     describe 'ignore resource errors', ->
-      it 'by default shows resource errors', ->
+      # https://github.com/laurentj/slimerjs/issues/424
+      it 'by default shows resource errors', !slimerjs and ->
         { code, stderr } = yield run { test: 'resource-errors' }
         stderr.should.contain('Error loading resource').and.contain('nonexistant-file.css')
         code.should.equal 0
 
       it 'can suppress resource errors', ->
         { stderr } = yield run { test: 'resource-errors', ignoreResourceErrors: true }
-        stderr.should.be.empty
+        stderr.should.not.contain('Error loading resource')
+        stderr.should.not.contain('nonexistant-file.css')
 
   describe 'env', ->
-    it 'has passed environment variables', ->
+    # https://github.com/laurentj/slimerjs/issues/421
+    it 'has passed environment variables', !slimerjs and ->
       process.env.FOO = 'yowzer'
       { stdout } = yield run { test: 'env' }
       stdout.should.match /^yowzer/
