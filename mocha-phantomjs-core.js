@@ -137,7 +137,7 @@ page.onCallback = function(data) {
         phantom.exit(data.testRunEnded.failures)
       }, 100)
     } else if (data.sendEvent) {
-      page.sendEvent.apply(this, data.sendEvent)
+      page.sendEvent.apply(page, data.sendEvent)
     }
   }
   return true
