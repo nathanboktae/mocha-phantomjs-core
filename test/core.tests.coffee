@@ -174,7 +174,8 @@ describe 'mocha-phantomjs-core', ->
       fs.unlinkSync(fileName)
 
   describe 'send event', ->
-    it 'call sendEvent function', ->
+    # https://github.com/laurentj/slimerjs/issues/430
+    it 'call sendEvent function', !slimerjs and ->
       { code } = yield run { test: 'send-event' }
       code.should.equal 0
 
