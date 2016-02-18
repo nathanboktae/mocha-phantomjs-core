@@ -175,7 +175,7 @@ describe 'mocha-phantomjs-core', ->
 
   describe 'send event', ->
     # https://github.com/laurentj/slimerjs/issues/430
-    it 'call sendEvent function', !slimerjs and ->
+    it 'trigger a click through page.sendEvent', !slimerjs and ->
       { code } = yield run { test: 'send-event' }
       code.should.equal 0
 
