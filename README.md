@@ -1,16 +1,14 @@
-# Run Mocha tests in PhantomJS
+# Run client-side Mocha tests in PhantomJS or SlimerJS
 
 [![Join the chat at https://gitter.im/nathanboktae/mocha-phantomjs-core](https://badges.gitter.im/nathanboktae/mocha-phantomjs-core.svg)](https://gitter.im/nathanboktae/mocha-phantomjs-core?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
 
-So now that you got your tests [Mocha](http://mochajs.org/) running on a simple flat HTML file, now how do you run them in your CI environment? [Karma](http://karma-runner.github.io/)? what is this `karma.conf.js` file I have to write? and some background runner task? how do I grep over just a few tests? wait I need a to also install a driver for phantomjs too? bleck.
+So now that you got your tests [Mocha](http://mochajs.org/) running on a simple flat HTML file, now how do you run them in your CI environment? [Karma](http://karma-runner.github.io/)? what is this `karma.conf.js` file I have to write? and some background runner task? how do I grep over just a few tests? wait I need a to also install a launcher for phantomjs or slimerjs too? bleck.
 
 Rather than force you to redo your test harness and local development testing, simply run `phantomjs mocha-phantomjs-core.js spec tests/mytests.html` and be done with it. `mocha-phantomjs-core` builds on top of what you already have, with no high barrier to entry like Karma.
 
-## The core of [mocha-phantomjs](https://github.com/metaskills/mocha-phantomjs)
-
-This project is the core phantomjs code for `mocha-phantomjs`. If you are a regular user wanting to use it from the command line, you'll want to go there. If you are a build plugin author, or want direct control over how phantomjs is invoked, you are in the right place.
+New in 2.0 is [SlimerJS](https://slimerjs.org) support! There are [some bugs](https://github.com/laurentj/slimerjs/issues/created_by/nathanboktae) still to be worked out, but now you can run your tests headless on the latest firefox version instead of an old QtWebKit!
 
 ## Installation
 
@@ -21,7 +19,7 @@ npm install mocha-phantomjs-core
 ## Usage
 
 ```
-phantomjs mocha-phantomjs-core.js <TESTS> <REPORTER> <CONFIG as JSON>
+<phantomjs|slimerjs> mocha-phantomjs-core.js <TESTS> <REPORTER> <CONFIG as JSON>
 ```
 
 Due to resource loading timing issues with external sources, you may need to call `initMochaPhantomJS` before calling any mocha setup functions like `setup()`, `ui()`, etc. `mocha-phantomjs-core` will notify you if you need this, and if so, add a check for it before your mocha setup code:
@@ -108,7 +106,7 @@ If you want to generate a screenshot for each test failure you could add the fol
 ## Send event
 
 `mocha-phantomjs-core` supports [sending events](http://phantomjs.org/api/webpage/method/send-event.html)
-from your test code. For example, `click` event:
+from your test code to allow for more ouside testing. For example, to trigger an external `click` event:
 
 ```javascript
 if (window.callPhantom) {
