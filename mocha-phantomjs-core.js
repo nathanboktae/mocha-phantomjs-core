@@ -3,81 +3,175 @@ var
   webpage = require('webpage'),
   fs = require('fs'),
   stderr = system.stderr || system.stdout,
-  url = system.args[1],
-  reporter = system.args[2] || 'spec',
   configured = false,
   runStarted = false,
   isSlimer = 'MozApplicationEvent' in window,
   config = {},
   hookData
 
-try {
-  config = JSON.parse(system.args[3] || '{}')
-} catch (e) {
-  console.log(e)
-  console.log('Bad JSON options')
-  phantom.exit(255)
+
+function parseCli(args) {
+  // Implementation courtesy https://github.com/joaquimserafim/cli-args
+  // Node package dependency is not taken due to `require.paths` headaches
+  var key, obj = { _: [] }
+
+  function convert(val) {
+    if (/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(e[-+]?\d+)?$/.test(val)) {
+      return Number(val)
+    } else if (/^(true|false)$/.test(val)) {
+      return 'true' === val
+    } else if (/null/.test(val)) {
+      return null
+    } else if (!/undefined/.test(val)) {
+      return val
+    }
+  }
+
+  for (var i = 0; i < args.length; i++) {
+    if (/^-\w|^--\w*=\w*/.test(args[i])) {
+      key = args[i].replace(/^--/, '').replace(/^-/, '')
+
+      // let args be passed either `--app=80` style or `-p 80`
+      if (/=/.test(key)) {
+        var splArg = key.split('=')
+        obj[splArg[0]] = convert(splArg[1])
+        key = null
+      }
+
+      continue
+    }
+
+    if (key) {
+      obj[key] = convert(args[i])
+      key = null
+    } else {
+      if (/^--/.test(args[i])) {
+        args[i] = args[i].replace('--', '')
+      }
+
+      obj._.push(convert(args[i]))
+    }
+  }
+  return obj
 }
 
+var cliOpts = parseCli(system.args),
+    url = cliOpts._[0],
+    reporter = cliOpts.r || cliOpts.reporter || 'spec'
 
-if (!url) {
-  system.stdout.writeLine("Usage: " + (isSlimer ? 'slimerjs' : 'phantomjs') + " mocha-phantomjs-core.js URL REPORTER [CONFIG-AS-JSON]")
+function tryParseOption(what, def) {
+  var json = cliOpts[what] || cliOpts[what[0]]
+  if (!json) return def
+
+  try {
+    return JSON.parse(json)
+  }
+  catch(e) {
+    stderr.writeLine('Error parsing ' + what + ': ' + e.message)
+    phantom.exit(253)
+  }
+}
+
+if (!url || cliOpts.help || cliOpts['?']) {
+  var executable = isSlimer ? 'mocha-slimerjs' : 'mocha-phantomjs'
+[
+'  Usage: ' + executable + ' [options] page\n',
+'  Options:',
+'    --help                      output usage information',
+'    -V, --version                output the version number',
+'    -R, --reporter <name>        specify the reporter to use',
+'    -f, --file <filename>        specify the file to dump reporter output',
+'    -t, --timeout <timeout>      specify the test startup timeout to use',
+'    -g, --grep <pattern>         only run tests matching <pattern>',
+'    -i, --invert                 invert --grep matches',
+'    -b, --bail                   exit on the first test failure',
+'    -A, --agent <userAgent>      specify the user agent to use',
+'    -c, --cookies <Object>       phantomjs cookie object http://git.io/RmPxgA',
+'    -h, --header <name>=<value>  specify custom header',
+'    -k, --hooks <path>           path to hooks module',
+'    -s, --setting <key>=<value>  specify specific phantom settings',
+'    -v, --view <width>x<height>  specify phantom viewport size',
+'    -C, --no-color               disable color escape codes',
+'    --ignore-resource-errors     ignore resource errors',
+'  Any other options are passed to phantomjs (see `phantomjs --help`)\n',
+'  Examples:\n',
+'    $ ' + executable + ' -R dot /test/file.html',
+'    $ ' + executable + ' https://testserver.com/file.html --ignore-ssl-errors=true',
+'    $ ' + executable + ' -g "Login tests" -b test/file.html'
+].forEach(function(line) {
+  system.stdout.writeLine(line)
+})
   phantom.exit(255)
 }
 
 if (phantom.version.major < 1 || (phantom.version.major === 1 && phantom.version.minor < 9)) {
   stderr.writeLine('mocha-phantomjs requires PhantomJS > 1.9.1')
-  phantom.exit(-2)
+  phantom.exit(254)
 }
 
 // Create and configure the client page
 var
-  output = config.file ? fs.open(config.file, 'w') : system.stdout,
-  page = webpage.create({
-    settings: config.settings
-  }),
+  filename = cliOpts.f || cliOpts.file,
+  ua = cliOpts.ua || cliOpts['user-agent'],
+  output = filename ? fs.open(filename, 'w') : system.stdout,
+  settings = tryParse('settings'),
   fail = function(msg, errno) {
-    if (output && config.file) {
+    if (output && filename) {
       output.close()
     }
     if (msg) {
       stderr.writeLine(msg)
     }
     return phantom.exit(errno || 1)
-  }
+  },
+  hooks = cliOpts.k || cliOpts.hooks
 
-if (config.hooks) {
+if (settings && ua) {
+  settings.userAgent = ua
+}
+
+var page = webpage.create({
+  settings: settings
+})
+
+if (hooks) {
   hookData = {
     page: page,
     config: config,
     reporter: reporter
   }
   try {
-    config.hooks = require(config.hooks)
+    hooks = require(hooks)
   }
   catch (e) {
     stderr.writeLine('Error loading hooks: ' + e.message)
     phantom.exit(253)
   }
 } else {
-  config.hooks = {}
+  hooks = {}
 }
 
-if (config.headers) {
-  page.customHeaders = config.headers
+if (cliOpts.h || cliOpts.headers) {
+  page.customHeaders = cliOpts.h || cliOpts.headers
 }
-(config.cookies || []).forEach(function(cookie) {
+
+tryParseOption('cookies', []).forEach(function(cookie) {
   page.addCookie(cookie)
 })
-if (config.viewportSize) {
-  page.viewportSize = config.viewportSize
+
+if (cliOpts.v || cliOpts.view) {
+  var viewport = (cliOpts.v || cliOpts.view).split('x')
+  page.viewportSize = {
+    width: Number(viewport[0]),
+    height: Number(viewport[1])
+  }
 }
 
 page.onConsoleMessage = function(msg) {
   return system.stdout.writeLine(msg)
 }
 page.onResourceError = function(resErr) {
-  if (!config.ignoreResourceErrors) {
+  if (!cliOpts['ignore-resource-errors']) {
     return stderr.writeLine("Error loading resource " + resErr.url + " (" + resErr.errorCode + "). Details: " + resErr.errorString)
   }
 }
@@ -95,10 +189,10 @@ page.open(url)
 page.onInitialized = function() {
   page.injectJs('browser-shim.js')
 
-  if (isSlimer && config.settings && config.settings.userAgent) {
+  if (isSlimer && ua) {
     page.evaluate(function(ua) {
       navigator.__defineGetter__('userAgent', function() { return ua })
-    }, config.settings.userAgent)
+    }, ua)
   }
 }
 page.onResourceReceived = function(resource) {
@@ -126,11 +220,11 @@ page.onCallback = function(data) {
       }
       runStarted = true
     } else if (data.testRunEnded) {
-      if (typeof config.hooks.afterEnd === 'function') {
+      if (typeof hooks.afterEnd === 'function') {
         hookData.runner = data.testRunEnded
-        config.hooks.afterEnd(hookData)
+        hooks.afterEnd(hookData)
       }
-      if (config.file) {
+      if (file) {
         output.close()
       }
       setTimeout(function() {
@@ -149,7 +243,7 @@ page.onLoadFinished = function(status) {
     return
   }
 
-  var loadTimeout = config.loadTimeout || 10000
+  var loadTimeout = cliOpts['load-timeout'] || 10000
   setTimeout(function() {
     if (!configured) {
       if (page.evaluate(function() { return !window.mocha })) {
@@ -166,21 +260,22 @@ page.onLoadFinished = function(status) {
 }
 
 function configureMocha() {
-  page.evaluate(function(config, env) {
+  page.evaluate(function(cliOpts, env) {
     mocha.env = env
 
-    mocha.useColors(config.useColors)
-    mocha.bail(config.bail)
-    if (config.timeout) {
-      mocha.timeout(config.timeout)
+    var noColors = cliOpts.C || cliOpts['no-color']
+    mocha.useColors(!noColors)
+    mocha.bail(cliOpts.b || cliOpts.bail)
+    if (cliOpts.t || cliOpts.timeout) {
+      mocha.timeout(cliOpts.t || cliOpts.timeout)
     }
-    if (config.grep) {
-      mocha.grep(config.grep)
+    if (cliOpts.g || cliOpts.grep) {
+      mocha.grep(cliOpts.g || cliOpts.grep)
     }
-    if (config.invert) {
+    if (cliOpts.i || cliOpts.invert) {
       mocha.invert()
     }
-  }, config, system.env)
+  }, cliOpts, system.env)
 
   // setup a the reporter
   if (page.evaluate(setupReporter, reporter) !== true) {
@@ -217,8 +312,8 @@ function configureMocha() {
     }
   }
 
-  if (typeof config.hooks.beforeStart === 'function') {
-    config.hooks.beforeStart(hookData)
+  if (typeof hooks.beforeStart === 'function') {
+    hooks.beforeStart(hookData)
   }
   configured = true
 }
