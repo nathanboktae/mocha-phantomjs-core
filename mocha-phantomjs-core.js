@@ -114,15 +114,11 @@ page.onCallback = function(data) {
       output.write(data.stdout)
     } else if (typeof data.screenshot === 'string') {
       page.render(data.screenshot + '.png')
-    } else if (data.viewportSize && (data.viewportSize.x || data.viewportSize.y)) {
-      setTimeout(function() {
-        page.viewportSize = (function(_page, _current, _x, _y) {
-          return _page.viewportSize = {
-            width : _x || _current.width,
-            height : _y || _current.height
-          };
-        })(page, page.viewportSize, data.viewportSize.x, data.viewportSize.y);
-      }, 0);
+    } else if (data.viewportSize && (data.viewportSize.width || data.viewportSize.height)) {
+      page.viewportSize = {
+        width: data.viewportSize.width || page.viewportSize.width,
+        height: data.viewportSize.height || page.viewportSize.height,
+      }
     } else if (data.configureColWidth) {
       page.evaluate(function(columns) {
         Mocha.reporters.Base.window.width = columns
