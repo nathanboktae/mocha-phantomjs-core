@@ -116,6 +116,23 @@ if (window.callPhantom) {
 }
 ```
 
+## Changing `viewportSize`
+
+`mocha-phantomjs-core` now also supports changing of viewportSize (the simulated `window` size for the headless browser) - while running tests.
+
+```javascript
+if (window.callPhantom) {
+  window.callPhantom({
+    viewportSize : {
+      width : 100,
+      height : 100
+    }
+  });
+}
+```
+
+This comes on particlarly handy when testing for responsiveness.
+
 ## Environment variables
 
 `mocha-phantomjs-core` will expose environment variables at `mocha.env`

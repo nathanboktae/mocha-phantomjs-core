@@ -173,6 +173,12 @@ describe 'mocha-phantomjs-core', ->
       fs.existsSync(fileName).should.be.true
       fs.unlinkSync(fileName)
 
+  describe 'viewport-size', ->
+    it 'changes viewport-size', ->
+      { code } = yield run { test: 'viewport-size' }
+      code.should.equal 0
+      code.should.equal 0
+
   describe 'send event', ->
     # https://github.com/laurentj/slimerjs/issues/430
     it 'trigger a click through page.sendEvent', !slimerjs and ->
