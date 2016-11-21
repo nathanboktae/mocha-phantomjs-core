@@ -296,9 +296,9 @@ describe 'mocha-phantomjs-core', ->
           test: 'mixed'
           useColors: true
 
-        stdout.should.match /\u001b\[90m\․\u001b\[0m/ # grey
-        stdout.should.match /\u001b\[36m\․\u001b\[0m/ # cyan
-        stdout.should.match /\u001b\[31m\․\u001b\[0m/ # red
+        stdout.should.match /\u001b\[90m.\u001b\[0m/ # grey
+        stdout.should.match /\u001b\[36m.\u001b\[0m/ # cyan
+        stdout.should.match /\u001b\[31m.\u001b\[0m/ # red
 
       it 'can suppresses color output', ->
         { stdout } = yield run
