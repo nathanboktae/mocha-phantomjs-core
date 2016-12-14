@@ -20,6 +20,11 @@ npm install mocha-phantomjs-core
 
 ```
 <phantomjs|slimerjs> mocha-phantomjs-core.js <TESTS> <REPORTER> <CONFIG as JSON>
+
+Examples:
+phantomjs ./node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js tests.html
+phantomjs ./node_modules/mocha-phantomjs-core/mocha-phantomjs-core.js tests/runner.html xunit > results.xml
+/usr/local/bin/phantomjs /path/to/mocha-phantomjs-core.js tests.html spec "{\"useColors\":true}"
 ```
 
 Due to resource loading timing issues with external sources, you may need to call `initMochaPhantomJS` before calling any mocha setup functions like `setup()`, `ui()`, etc. `mocha-phantomjs-core` will notify you if you need this, and if so, add a check for it before your mocha setup code:
