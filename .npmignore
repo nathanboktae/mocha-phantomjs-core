@@ -4,5 +4,5 @@
 /node_modules
 test
 public
-./phantomjs
-./phantomjs2
+phantomjs
+phantomjs2
