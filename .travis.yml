@@ -1,14 +1,11 @@
 language: node_js
 node_js:
   - 4
-addons:
-  firefox: "42.0"
 
 env:
   - PHANTOMJS1=1.9.7
   - PHANTOMJS2=2.0.0
   - PHANTOMJS2=2.1.1 PHANTOMJS21=1
-  - SLIMERJS=0.9.6 SLIMERJSLAUNCHER=$(which firefox) DISPLAY=:99.0
 
 before_script:
   - "if [ -n \"$PHANTOMJS1\" ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-1.9.7-linux-x86_64.tar.bz2 -O - | tar -xj; fi"
