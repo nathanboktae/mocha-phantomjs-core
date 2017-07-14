@@ -28,7 +28,7 @@
     M.process = M.process || {}
     M.process.stdout = M.process.stdout || process.stdout
     M.process.stdout.write = function(s) { window.callPhantom({ stdout: s }) }
-    window.callPhantom({ getColWith: true })
+    window.callPhantom({ configureColWidth: true })
   }
 
   function shimMochaInstance(m) {
