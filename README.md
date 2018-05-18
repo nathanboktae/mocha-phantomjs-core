@@ -1,6 +1,12 @@
 # Run client-side Mocha tests in PhantomJS or SlimerJS
 
-[![Join the chat at https://gitter.im/nathanboktae/mocha-phantomjs-core](https://badges.gitter.im/nathanboktae/mocha-phantomjs-core.svg)](https://gitter.im/nathanboktae/mocha-phantomjs-core?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+## Deprecated
+
+Ariya Hidayat [archived phantomjs](https://github.com/ariya/phantomjs/issues/15344) on March 3rd, 2018. (See [this tweet](https://twitter.com/AriyaHidayat/status/970173001701367808) for more info). phantomjs served us all as great headless browser for years, but now with [Electron](https://electronjs.org/) and headless modes for both [Chrome](https://developers.google.com/web/updates/2017/04/headless-chrome) and [Firefox](https://developer.mozilla.org/en-US/Firefox/Headless_mode), we have much better options.  [mocha-chrome](https://github.com/shellscape/mocha-chrome) is a project inspired by `mocha-phantomjs`, so migration should be easy, and you will be running your tests on the same browser that 50% of your users actually use! I highly recommend it.
+
+I will accept pull requests still, but I won't be answering issues or doing feature work myself.
+
+## Summary
 
 [![Build Status](https://secure.travis-ci.org/nathanboktae/mocha-phantomjs-core.png)](http://travis-ci.org/nathanboktae/mocha-phantomjs-core)
 
